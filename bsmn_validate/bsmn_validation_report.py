@@ -5,11 +5,25 @@ Date: 07May2019
 Purpose: Run validation checks on BSMN manifest files and report the results.
 """
 
+import synapseclient
 import pandas as pd
+import json
 
 def main()
+
     # Create an empty errors dataframe
     manifest_errors = pd.DataFrame()
+
+    # Read in the JSON manifest config file. This file contains the following information:
+    # - Synapse ID of the Grand Data Staged Submission Manifests table. This table contains the parent IDs of
+    #   the uploaded manifests.
+    # - The current acceptable prefixes for the manifest files, e.g. genomics_subject02
+    with open('config_files/manifests.json', 'r') as config_file:
+        config_data = json.load(config_file)
+
+    # Log onto Synapse - assumes a .synapseConfig file exists in the user home folder
+    syn = synapseclient.Synapse()
+    syn.login()
 
     # Get the manifests from Synapse and read the data into dataframes
     # check that all three manifest files exist
