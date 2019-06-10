@@ -16,11 +16,6 @@ Execution: merge_nda_manifest_files.py <file string> <output file>
 
 import argparse
 import glob
-import logging
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
 
 def main():
 
@@ -50,18 +45,27 @@ def main():
     header_line = False
 
     for file_name in file_list:
-        with open(file_name) as source_file:
 
-            if header_line:
-                next(source_file)
-                next(source_file)
-            else:
-                header_line = True
+        # Check to make sure the file name coming from the list does not match
+        # the specified output file name. If this is not done and the specified
+        # output file name contains the specified search string (and is therefore
+        # in the file name list), python will continuously read the contents of
+        # the output file and write it back out to the output file, which will
+        # result in an infinite loop until the space bottoms out.
+        if file_name != args.output_file.name:
 
-            for line in source_file:
-                args.output_file.write(line)
+            with open(file_name) as source_file:
 
-        source_file.close()
+                if header_line:
+                    next(source_file)
+                    next(source_file)
+                else:
+                    header_line = True
+
+                for line in source_file:
+                    args.output_file.write(line)
+
+            source_file.close()
 
     args.output_file.close()
 
