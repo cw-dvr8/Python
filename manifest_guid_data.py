@@ -97,8 +97,6 @@ def main():
     collection_id_list = (table_results_df[args.column_name].str.split("=", n=1).str[1]).tolist()
     logger.debug(collection_id_list)
 
-    collection_id_list = [2966]
-
     for coll_id in collection_id_list:
 
         # The NDASubmission class returns a list of dictionaries, with each dictionary
