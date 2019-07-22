@@ -59,7 +59,7 @@ def main():
                         help="File containing NDA user credentials (full path)")
     parser.add_argument("manifest_type", type=str,
                         help="NDA manifest type (genomics_sample03, genomics_subject02, nichd_btb02")
-    parser.add_argument("out_file", type=argparse.FileType('a'), 
+    parser.add_argument("out_file", type=argparse.FileType('w'), 
                         help="Output .csv file (full path)")
     parser.add_argument("--synapse_id", type=str, default=COLLECTION_ID_LOCATION,
                         help="Synapse ID for the entity containing the collection ID")
@@ -69,11 +69,7 @@ def main():
     args = parser.parse_args()
 
     guid_list = list()
-    manifest_data = dict()
-
-    # Set a flag to indicate whether the output file has already been written to.
-    # If it has, do not write the headers to it again.
-    new_write = True
+    all_guids_df = pd.DataFrame()
 
     syn = synapseclient.Synapse()
     syn.login(silent=True)
@@ -94,7 +90,9 @@ def main():
 
     # The link to the NDA collection will have a format similar to
     # https://ndar.nih.gov/edit_collection.html?id=<NDA collection ID>
+    # Also include the reference tissue project collection ID (2458)
     collection_id_list = (table_results_df[args.column_name].str.split("=", n=1).str[1]).tolist()
+    collection_id_list.append("2458")
     logger.debug(collection_id_list)
 
     for coll_id in collection_id_list:
@@ -127,18 +125,25 @@ def main():
         # The documentation for the data structure is here:
         # https://nda.nih.gov/api/guid/docs/swagger-ui.html#!/guid/guidXMLTableUsingGET
         for ds_row in guid_data["age"][0]["dataStructureRow"]:
+            manifest_data = dict()
             for de_row in ds_row["dataElement"]:
                 manifest_data[de_row["name"]] = de_row["value"]
 
+            # Get the collection number and add it to the manifest_data.
+            for link_row in ds_row["links"]["link"]:
+                if link_row["rel"].lower() == "collection":
+                    manifest_data["collection_id"] = link_row["href"].split("=")[1]
+
             # Get the manifest data dictionary into a dataframe and flatten it out if necessary.
             manifest_flat_df = pd.io.json.json_normalize(manifest_data)
+            all_guids_df = pd.concat([all_guids_df, manifest_flat_df], axis=0, ignore_index=True, sort=False)
 
-            # Figure out whether the headers already exist in the file.
-            if new_write:
-                manifest_flat_df.to_csv(args.out_file)
-                new_write = False
-            else:
-                manifest_flat_df.to_csv(args.out_file, header=False)
+    # Run the data through the list of BSMN collection IDs since it is possible for
+    # the samples to have been used in other consortia.
+
+    all_collections_df = all_guids_df[all_guids_df["collection_id"].isin(collection_id_list)]
+
+    all_collections_df.to_csv(args.out_file, index=False)
 
     args.out_file.close()
 
