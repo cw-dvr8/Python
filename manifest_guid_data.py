@@ -90,9 +90,7 @@ def main():
 
     # The link to the NDA collection will have a format similar to
     # https://ndar.nih.gov/edit_collection.html?id=<NDA collection ID>
-    # Also include the reference tissue project collection ID (2458)
     collection_id_list = (table_results_df[args.column_name].str.split("=", n=1).str[1]).tolist()
-    collection_id_list.append("2458")
     logger.debug(collection_id_list)
 
     for coll_id in collection_id_list:
@@ -122,6 +120,13 @@ def main():
 
         guid_data = json.loads(r.text)
         
+        # It is possible for there to be no data for the specified manifest type. If this
+        # is the case, the GUID API will return an OK status (status_code = 200) and an
+        # empty data structure, which will cause the code to crash further down, so check
+        # to make sure that the data structure is not empty before continuing.
+        if len(guid_data["age"]) == 0:
+            continue
+
         # The documentation for the data structure is here:
         # https://nda.nih.gov/api/guid/docs/swagger-ui.html#!/guid/guidXMLTableUsingGET
         for ds_row in guid_data["age"][0]["dataStructureRow"]:
