@@ -105,6 +105,7 @@ def main():
                 data_file_as_string = data_file["content"].decode("utf-8")
                 if SUBJECT_MANIFEST in data_file_as_string:
                     manifest_df = pd.read_csv(io.StringIO(data_file_as_string), skiprows=1)
+                    manifest_df["submission_id"] = submission["submission_id"]
                     for guid in manifest_df["subjectkey"].tolist():
                         guid_list.append(guid)
 
@@ -143,11 +144,17 @@ def main():
             manifest_flat_df = pd.io.json.json_normalize(manifest_data)
             all_guids_df = pd.concat([all_guids_df, manifest_flat_df], axis=0, ignore_index=True, sort=False)
 
+    # Get rid of any rows that are exact duplicates except for the manifest ID column
+    # (GENOMICS_SUBJECT02_ID, NICHD_BTB02_ID, GENOMICS_SAMPLE03_ID)
+    manifest_id = (args.manifest_type + "_id").upper()
+    all_guids_df.drop(manifest_id, axis=1, inplace=True)
+    column_list = (all_guids_df.columns).tolist()
+    pared_guids_df = all_guids_df.drop_duplicates(subset=column_list, keep="first")
+
     # Run the data through the list of BSMN collection IDs since it is possible for
     # the samples to have been used in other consortia.
-
-    all_collections_df = all_guids_df[all_guids_df["collection_id"].isin(collection_id_list)]
-
+    all_collections_df = pared_guids_df[pared_guids_df["collection_id"].isin(collection_id_list)]
+    
     all_collections_df.to_csv(args.out_file, index=False)
 
     args.out_file.close()
