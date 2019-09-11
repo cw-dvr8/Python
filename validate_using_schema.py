@@ -3,22 +3,20 @@
 """
 Program: validate_using_schema.py
 
-Purpose: Validate an object using a JSON schema.
+Purpose: Validate an object using a JSON Draft 7 schema. If the object to
+         be validated is a manifest file, it is assumed to be a csv file.
 
 Input parameters: Full pathname to the JSON validation schema
                   Full pathname to the object to be validated
                   Optional full pathname to the location of any definition
                       references.
-                  Optional flag to indicate whether the object is a
+                  Optional flag to indicate that the object is a
                       manifest file.
 
 Outputs: Terminal output
 
 Execution: validate_using_schema.py <JSON schema> <object to be validated>
                --reference_path <definition reference path> --manifest_file
-
-Notes: if the object to be validated is a manifest file, it is assumed to
-       be a csv file.
 
 """
 
@@ -36,13 +34,6 @@ def validate_object(json_val_schema, reference_uri, object_to_validate):
 
     schema_errors = schema_validator.iter_errors(object_to_validate)
     for error in schema_errors:
-
-        # If a field in a .csv file is missing, the error is probably not easily
-        # understood by non-programmers, so translate it into something more
-        # clear.
-        if "None is not of type" in error.message:
-            error.message = "Column value cannot be missing"
-
         print(f"{error.relative_schema_path[1]}: {error.message}")
 
 def main():
@@ -81,8 +72,13 @@ def main():
 
         # Convert the dataframe to a list of dictionaries and loop through it.
         data_file_dict = data_file_df.to_dict(orient="records")
-        for data_file_record in data_file_dict:
-            validate_object(json_schema, ref_uri, data_file_record)
+        for data_record in data_file_dict:
+
+            # Remove any None values from the dictionary - it simplifies the coding of the
+            # JSON validation schema.
+            clean_record = {k: data_record[k] for k in data_record if data_record[k] is not None}
+
+            validate_object(json_schema, ref_uri, clean_record)
     
     else:
         val_json_obj = json.load(args.validation_obj_file)
