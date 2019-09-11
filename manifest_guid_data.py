@@ -156,7 +156,7 @@ def main():
     # experiments were defined in the reference tissue project.
     collection_id_list.append("2458")
 
-    all_collections_df = pared_guids_df[pared_guids_df["collection_id"].isin(collection_id_list)]
+    all_collections_df = pared_guids_df[pared_guids_df["experiment_collection_id"].isin(collection_id_list)]
     
     all_collections_df.to_csv(args.out_file, index=False)
 
