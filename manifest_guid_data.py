@@ -140,8 +140,10 @@ def main():
                         manifest_data["experiment_collection_id"] = link_row["href"].split("=")[1]
 
                 # Get the manifest data dictionary into a dataframe and flatten it out if necessary.
-                manifest_flat_df = pd.io.json.json_normalize(manifest_data)
-                all_guids_df = pd.concat([all_guids_df, manifest_flat_df], axis=0, ignore_index=True, sort=False)
+                # Only do this if the SUBJECTKEY is not the Reference Tissue GUID.
+                if manifest_data["SUBJECTKEY"] != "NDAR_INVRT663MBL":
+                    manifest_flat_df = pd.io.json.json_normalize(manifest_data)
+                    all_guids_df = pd.concat([all_guids_df, manifest_flat_df], axis=0, ignore_index=True, sort=False)
 
     # Get rid of any rows that are exact duplicates except for the manifest ID column
     # (GENOMICS_SUBJECT02_ID, NICHD_BTB02_ID, GENOMICS_SAMPLE03_ID)
