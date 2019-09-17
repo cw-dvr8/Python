@@ -128,19 +128,20 @@ def main():
 
         # The documentation for the data structure is here:
         # https://nda.nih.gov/api/guid/docs/swagger-ui.html#!/guid/guidXMLTableUsingGET
-        for ds_row in guid_data["age"][0]["dataStructureRow"]:
-            manifest_data = dict()
-            for de_row in ds_row["dataElement"]:
-                manifest_data[de_row["name"]] = de_row["value"]
+        for age_row in guid_data["age"]:
+            for ds_row in age_row["dataStructureRow"]:
+                manifest_data = dict()
+                for de_row in ds_row["dataElement"]:
+                    manifest_data[de_row["name"]] = de_row["value"]
 
-            # Get the collection number and add it to the manifest_data.
-            for link_row in ds_row["links"]["link"]:
-                if link_row["rel"].lower() == "collection":
-                    manifest_data["experiment_collection_id"] = link_row["href"].split("=")[1]
+                # Get the collection number and add it to the manifest_data.
+                for link_row in ds_row["links"]["link"]:
+                    if link_row["rel"].lower() == "collection":
+                        manifest_data["experiment_collection_id"] = link_row["href"].split("=")[1]
 
-            # Get the manifest data dictionary into a dataframe and flatten it out if necessary.
-            manifest_flat_df = pd.io.json.json_normalize(manifest_data)
-            all_guids_df = pd.concat([all_guids_df, manifest_flat_df], axis=0, ignore_index=True, sort=False)
+                # Get the manifest data dictionary into a dataframe and flatten it out if necessary.
+                manifest_flat_df = pd.io.json.json_normalize(manifest_data)
+                all_guids_df = pd.concat([all_guids_df, manifest_flat_df], axis=0, ignore_index=True, sort=False)
 
     # Get rid of any rows that are exact duplicates except for the manifest ID column
     # (GENOMICS_SUBJECT02_ID, NICHD_BTB02_ID, GENOMICS_SAMPLE03_ID)
