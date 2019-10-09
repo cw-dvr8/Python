@@ -20,7 +20,7 @@ Execution: create_dccvalidator_table_from_schema.py <JSON schema>
 
 import argparse
 import json
-import jsonref
+import jsonschema
 import os
 import pandas as pd
 import synapseclient
@@ -37,7 +37,7 @@ def main():
 
     args = parser.parse_args()
 
-    ref_path_list = []
+    deref_json_schema = {}
     ref_module_dict = {}
 
     table_df = pd.DataFrame()
@@ -63,26 +63,23 @@ def main():
     # "properties" key to simplify the data # structure.
     json_schema = json.load(args.json_schema_file)["properties"]
 
-    # Create a list of reference paths, and also a dictionary of annotation modules.
+    # Create a reference resolver from the schema.
+    ref_resolver = jsonschema.RefResolver.from_schema(json_schema)
+
+    # De-reference any references in the schema and create a dictionary of annotation
+    # modules.
     for schema_key in json_schema:
         if "$ref" in json_schema[schema_key]:
-            ref_doc, ref_frag = urldefrag(json_schema[schema_key]["$ref"])
+            deref_object = ref_resolver.resolve(json_schema[schema_key]["$ref"])
+            deref_json_schema[schema_key] = deref_object[1]
+            ref_doc, ref_frag = urldefrag(deref_object[0])
             ref_path, ref_file = os.path.split(ref_doc)
-            if ref_path not in ref_path_list:
-                ref_path_list.append(ref_path)
-
             ref_module_dict[schema_key] = os.path.splitext(ref_file)[0]
-
-    # If there are any $ref statements, cycle through the schema and de-reference
-    # them. If there are not, start with the original schema.
-    json_schema_deref = json_schema
-    if len(ref_path_list) > 0:
-        for ref_path in ref_path_list:
-            json_schema_deref = jsonref.JsonRef.replace_refs(json_schema_deref, ref_path)
-
+        else:
+            deref_json_schema[schema_key] = json_schema[schema_key]
 
     # Build a Pandas dataframe out of the schema.
-    for json_key in json_schema_deref:
+    for json_key in deref_json_schema:
         output_row = {}
 
         # Assemble the output row.
@@ -91,15 +88,15 @@ def main():
         if json_key in ref_module_dict:
             output_row["module"] = ref_module_dict[json_key]
 
-        if len(json_schema_deref[json_key].keys()) > 0:
-            if "description" in json_schema_deref[json_key]:
-                output_row["description"] = json_schema_deref[json_key]["description"]
+        if len(deref_json_schema[json_key].keys()) > 0:
+            if "description" in deref_json_schema[json_key]:
+                output_row["description"] = deref_json_schema[json_key]["description"]
 
-            if "type" in json_schema_deref[json_key]:
-                output_row["columnType"] = json_schema_deref[json_key]["type"]
+            if "type" in deref_json_schema[json_key]:
+                output_row["columnType"] = deref_json_schema[json_key]["type"]
 
-            if "anyOf" in json_schema_deref[json_key]:
-                for anyof_row in json_schema_deref[json_key]["anyOf"]:
+            if "anyOf" in deref_json_schema[json_key]:
+                for anyof_row in deref_json_schema[json_key]["anyOf"]:
                     if "const" in anyof_row:
                         output_row["value"] = anyof_row["const"]
 
