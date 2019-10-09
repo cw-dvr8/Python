@@ -39,6 +39,7 @@ def main():
 
     deref_json_schema = {}
     ref_module_dict = {}
+    values_list_keys = ["anyOf", "enum"]
 
     table_df = pd.DataFrame()
 
@@ -95,16 +96,22 @@ def main():
             if "type" in deref_json_schema[json_key]:
                 output_row["columnType"] = deref_json_schema[json_key]["type"]
 
-            if "anyOf" in deref_json_schema[json_key]:
-                for anyof_row in deref_json_schema[json_key]["anyOf"]:
-                    if "const" in anyof_row:
-                        output_row["value"] = anyof_row["const"]
+            if "maximumSize" in deref_json_schema[json_key]:
+                output_row["maximumSize"] = deref_json_schema[json_key]["maximumSize"]
 
-                    if "description" in anyof_row:
-                        output_row["valueDescription"] = anyof_row["description"]
+            # A values list could be designated with different keys depending on the
+            # schema. See the declaration of the values_list_keys list above.
+            if any([value_key in deref_json_schema[json_key] for value_key in values_list_keys]):
+                vkey = list(set(values_list_keys).intersection(deref_json_schema[json_key]))[0]
+                for values_row in deref_json_schema[json_key][vkey]:
+                    if "const" in values_row:
+                        output_row["value"] = values_row["const"]
 
-                    if "source" in anyof_row:
-                        output_row["source"] = anyof_row["source"]
+                    if "description" in values_row:
+                        output_row["valueDescription"] = values_row["description"]
+
+                    if "source" in values_row:
+                        output_row["source"] = values_row["source"]
 
                     table_df = table_df.append(output_row, ignore_index=True)
             else:
