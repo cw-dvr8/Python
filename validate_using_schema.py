@@ -12,27 +12,30 @@ Purpose: Validate an object using a JSON Draft 7 schema. If the object to
 
 Input parameters: Full pathname to the JSON validation schema
                   Full pathname to the object to be validated
-                  Optional full pathname to the location of any definition
-                      references.
                   Optional flag to indicate that the object is a
                       manifest file.
 
 Outputs: Terminal output
 
 Execution: validate_using_schema.py <JSON schema> <object to be validated>
-               --reference_path <definition reference path> --manifest_file
+               --manifest_file
 
 """
 
 import argparse
 import json
-import jsonref
 import jsonschema
 import pandas as pd
+
+# This function is necessary when references are allowed to contain multiple
+# types. It has been decided as of now that multiple types will not be allowed,
+# but I am leaving this in anticipation of that decision being reversed in the
+# future.
 
 def convert_to_boolean(data_row, val_schema):
 
     bool_conversion = {"TRUE": True, "FALSE": False}
+    values_list_keys = ["anyOf", "enum"]
     converted_row = dict()
 
     # We only want to convert strings into Booleans if the field has a controlled
@@ -45,17 +48,19 @@ def convert_to_boolean(data_row, val_schema):
         # a) the key is not in the schema, i.e. the site put extra columns in the file;
         # b) the value is not a string;
         # c) the value is a string but there are no other alternative types/values for it in the schema
-        if ((rec_key not in val_schema["properties"]) or
-            (not(isinstance(data_row[rec_key], str))) or
-            ((isinstance(data_row[rec_key], str)) and ("anyOf" not in val_schema["properties"][rec_key]))):
+        if ((rec_key not in val_schema["properties"])
+            or (not(isinstance(data_row[rec_key], str)))
+            or ((isinstance(data_row[rec_key], str))
+                and not(any(value_key in val_schema["properties"][rec_key] for value_key in values_list_keys)))):
             converted_row[rec_key] = data_row[rec_key]
 
         else:
             # If it is possible for the key to contain a number and the string value is some sort of number,
             # convert the string into a number.
+            vkey = list(set(values_list_keys).intersection(val_schema[rec_key]))[0]
             number_is_possible = False
-            for schema_anyof in val_schema["properties"][rec_key]["anyOf"]:
-                if ("type" in schema_anyof) and (schema_anyof["type"] in ["integer", "number"]):
+            for schema_values in val_schema["properties"][rec_key][vkey]:
+                if ("type" in schema_values) and (schema_values["type"] in ["integer", "number"]):
                     number_is_possible = True
                     break
 
@@ -69,6 +74,43 @@ def convert_to_boolean(data_row, val_schema):
 
             else:
                 converted_row[rec_key] = bool_conversion.get(data_row[rec_key].upper(), data_row[rec_key])
+
+    return converted_row
+
+
+def convert_from_boolean(data_row, val_schema):
+
+    string_conversion = {True: "true", False: "false"}
+    values_list_keys = ["anyOf", "enum"]
+    converted_row = dict()
+
+    # We only want to convert Booleans into strings if the field has a controlled
+    # values list and has more than one possible type, e.g. "true", "false", "Unknown".
+    # In that instance, we want to convert a Boolean true/false to a string true/false.
+    for rec_key in data_row:
+            
+        # Pass the row through if:
+        # a) the key is not in the schema, i.e. the site put extra columns in the file;
+        # b) the value is not a Boolean;
+        # c) the value is a Boolean but there are no other alternative types/values for it in the schema
+        if ((rec_key not in val_schema["properties"])
+            or (not(isinstance(data_row[rec_key], bool)))
+            or ((isinstance(data_row[rec_key], bool))
+                and not(any(value_key in val_schema["properties"][rec_key] for value_key in values_list_keys)))):
+            converted_row[rec_key] = data_row[rec_key]
+
+        else:
+            vkey = list(set(values_list_keys).intersection(val_schema["properties"][rec_key]))[0]
+            string_is_possible = False
+            for schema_values in val_schema["properties"][rec_key][vkey]:
+                if ("const" in schema_values) and (isinstance(schema_values["const"], str)):
+                    string_is_possible = True
+                    break
+
+            if string_is_possible:
+                converted_row[rec_key] = string_conversion.get(data_row[rec_key], data_row[rec_key])
+            else:
+                converted_row[rec_key] = data_row[rec_key]
 
     return converted_row
 
@@ -94,20 +136,27 @@ def main():
                         help="Full pathname for the JSON schema file")
     parser.add_argument("validation_obj_file", type=argparse.FileType("r"),
                         help="Full pathname for the object to be validated")
-    parser.add_argument("--reference_path", type=str,
-                        help="Full pathname location for references")
     parser.add_argument("--manifest_file", action="store_true",
                         help="Is the object to be validated a manifest file?")
 
     args = parser.parse_args()
 
-    # Check to see if a reference path has been passed in. If it has, use jsonref to load
-    # the validation schema.  If not, use the json module.
-    if args.reference_path is not None:
-        json_schema = jsonref.load(args.json_schema_file, base_uri=args.reference_path, jsonschema=True)
+    # Load the JSON schema. I am not using jsonref to resolve the $refs on load 
+    # so that the $refs can point to different locations. I formerly had to pass in
+    # a reference path when I was using jsonref, so all of the modules accessed by
+    # the $ref statements had to live in the same location.
+    json_schema = json.load(args.json_schema_file)
 
-    else:
-        json_schema = json.load(args.json_schema_file)
+    # Create a reference resolver from the schema.
+    ref_resolver = jsonschema.RefResolver.from_schema(json_schema)
+
+    # Resolve any references in the schema.
+    for schema_key in json_schema["properties"]:
+        if "$ref" in json_schema["properties"][schema_key]:
+            deref_object = ref_resolver.resolve(json_schema["properties"][schema_key]["$ref"])
+            json_schema["properties"][schema_key] = deref_object[1]
+        else:
+            json_schema["properties"][schema_key] = json_schema["properties"][schema_key]
 
     # If the object to be validated is a manifest file, read it into a pandas
     # dataframe.  Otherwise, read it into JSON.
@@ -127,7 +176,8 @@ def main():
 
             # Convert string true/false values to Boolean true/false values only if the JSON key
             # is not strictly defined as a string column.
-            converted_clean_record = convert_to_boolean(clean_record, json_schema)
+            # converted_clean_record = convert_to_boolean(clean_record, json_schema)
+            converted_clean_record = convert_from_boolean(clean_record, json_schema)
 
             validate_object(json_schema, converted_clean_record)
     
@@ -135,9 +185,11 @@ def main():
         val_json_obj = json.load(args.validation_obj_file)
 
         # Convert string true/false values to Boolean true/false values.
-        converted_val_json_obj = convert_to_boolean(val_json_obj, json_schema)
+        # converted_val_json_obj = convert_to_boolean(val_json_obj, json_schema)
+        converted_val_json_obj = convert_from_boolean(val_json_obj, json_schema)
 
         validate_object(json_schema, converted_val_json_obj)
+
 
 if __name__ == "__main__":
     main()
