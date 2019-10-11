@@ -19,9 +19,9 @@ Execution: validate_using_schema.py <JSON schema> <object to be validated>
 """
 
 import argparse
-import json
 import jsonschema
 import pandas as pd
+from schema_tools import load_and_deref
 
 # This function is necessary when references are allowed to contain multiple
 # types. It has been decided as of now that multiple types will not be allowed,
@@ -137,22 +137,8 @@ def main():
 
     args = parser.parse_args()
 
-    # Load the JSON schema. I am not using jsonref to resolve the $refs on load 
-    # so that the $refs can point to different locations. I formerly had to pass in
-    # a reference path when I was using jsonref, so all of the modules accessed by
-    # the $ref statements had to live in the same location.
-    json_schema = json.load(args.json_schema_file)
-
-    # Create a reference resolver from the schema.
-    ref_resolver = jsonschema.RefResolver.from_schema(json_schema)
-
-    # Resolve any references in the schema.
-    for schema_key in json_schema["properties"]:
-        if "$ref" in json_schema["properties"][schema_key]:
-            deref_object = ref_resolver.resolve(json_schema["properties"][schema_key]["$ref"])
-            json_schema["properties"][schema_key] = deref_object[1]
-        else:
-            json_schema["properties"][schema_key] = json_schema["properties"][schema_key]
+    # Load the JSON schema.
+    _, json_schema = load_and_deref(args.json_schema_file)
 
     # If the object to be validated is a manifest file, read it into a pandas
     # dataframe.  Otherwise, read it into JSON.
