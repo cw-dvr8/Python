@@ -10,22 +10,18 @@ Purpose: Use a JSON validation schema to generate a csv template file. If
 
 Input parameters: Full pathname to the JSON validation schema
                   Full pathname to the output template file
-                  Optional full pathname to the location of any definition
-                      references.
                   Optional flag to generate a definitions file
 
 Outputs: csv template file
 
 Execution: create_template_from_schema.py <JSON schema> <output file>
-               --reference_path <definition reference path>
                --definitions
 
 """
 
 import argparse
 import csv
-import json
-import jsonref
+from schema_tools import load_and_deref
 
 def main():
 
@@ -34,8 +30,6 @@ def main():
                         help="Full pathname for the JSON schema file")
     parser.add_argument("output_file", type=argparse.FileType("w"),
                         help="Full pathname for the output file")
-    parser.add_argument("--reference_path", type=str,
-                        help="Full pathname location for references")
     parser.add_argument("--definitions", action="store_true",
                         help="Indicates that a definitions file should be generated also")
 
@@ -44,17 +38,8 @@ def main():
     # Define headers for the definitions file in case one is requested.
     definition_column_headers = ["key", "type", "definition", "required", "rules", "possible values", "possible values definitions"]
 
-    # Check to see if a reference path has been passed in. If it has, use jsonref to load
-    # the validation schema.  If not, it is assumed that all of the keys are defined within
-    # the schema. If they are not, it will not be possible to generate a definition for
-    # those keys.
-    #
-    # For local files, the path that is passed in must be preceded by "file://". For remote
-    # references, the full URL must be provided.
-    if args.reference_path is not None:
-        json_schema = jsonref.load(args.json_schema_file, base_uri=args.reference_path, jsonschema=True)
-    else:
-        json_schema = json.load(args.json_schema_file)
+    # Load the JSON schema.
+    _, json_schema = load_and_deref(args.json_schema_file)
 
     # Get the schema keys into a list and then write them to the output file.
     column_header_list = []
