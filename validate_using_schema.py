@@ -6,10 +6,6 @@ Program: validate_using_schema.py
 Purpose: Validate an object using a JSON Draft 7 schema. If the object to
          be validated is a manifest file, it is assumed to be a csv file.
 
-         For local reference definition files, the reference passed in
-         must be preceded by the string "file://".  For remote references,
-         the full URL must be provided.
-
 Input parameters: Full pathname to the JSON validation schema
                   Full pathname to the object to be validated
                   Optional flag to indicate that the object is a
