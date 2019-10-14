@@ -11,20 +11,17 @@ Purpose: Use a JSON validation schema to generate an Excel workbook with
 
 Input parameters: Full pathname to the JSON validation schema
                   Full pathname to the output template file
-                  Optional full pathname to the location of any definition
-                      references.
 
 Outputs: Excel template workbook
 
 Execution: create_excel_template_from_schema.py <JSON schema> <output file>
-               --reference_path <definition reference path>
 
 """
 
 import argparse
-import json
-import jsonref
 from openpyxl import Workbook
+from schema_tools import load_and_deref
+from schema_tools import values_list_keywords
 
 def main():
 
@@ -33,35 +30,23 @@ def main():
                         help="Full pathname for the JSON schema file")
     parser.add_argument("output_file", type=str,
                         help="Full pathname for the output Excel file")
-    parser.add_argument("--reference_path", type=str,
-                        help="Full pathname location for references")
 
     args = parser.parse_args()
 
     bool_to_string = {True: "true", False: "false"}
+    values_list_keys = values_list_keywords()
 
     template_workbook = Workbook()
 
-    # Check to see if a reference path has been passed in. If it has, use jsonref to load
-    # the validation schema.  If not, it is assumed that all of the keys are defined within
-    # the schema. If they are not, it will not be possible to generate a definition for
-    # those keys.
-    #
-    # For local files, the path that is passed in must be preceded by "file://". For remote
-    # references, the full URL must be provided.
-    if args.reference_path is not None:
-        json_schema = jsonref.load(args.json_schema_file, base_uri=args.reference_path, jsonschema=True)
-    else:
-        json_schema = json.load(args.json_schema_file)
+    # Load the JSON validation schema.
+    _, json_schema = load_and_deref(args.json_schema_file)
 
     # Get the schema keys into a list and then write them to the template worksheet. The 
     # template worksheet will only have one row, but will have multiple columns.
     template_ws = template_workbook.active
     template_ws.title = "Template"
 
-    column_header_list = []
-    for column_header in json_schema["properties"].keys():
-        column_header_list.append(column_header)
+    column_header_list = list(json_schema["properties"].keys())
 
     column_number = 1
     for header_value in column_header_list:
@@ -99,24 +84,25 @@ def main():
             values_ws.cell(values_row_number, 2).value = json_schema["properties"][json_key]["pattern"]
             values_row_number += 1
 
-        elif "anyOf" in json_schema["properties"][json_key]:
-            for anyof_row in json_schema["properties"][json_key]["anyOf"]:
-                if "const" in anyof_row:
+        elif any([value_key in json_schema["properties"][json_key] for value_key in values_list_keys]):
+            vkey = list(set(values_list_keys).intersection(json_schema["properties"][json_key]))[0]
+            for vlist_row in json_schema["properties"][json_key][vkey]:
+                if "const" in vlist_row:
                     values_ws.cell(values_row_number, 1).value = json_key
 
                     # If the value is a Boolean, we have to convert it to a string; otherwise
                     # Excel will force it into all-caps, i.e. (TRUE, FALSE) and this is not
                     # what we want.
-                    if isinstance(anyof_row["const"], bool):
-                        converted_value = bool_to_string.get(anyof_row["const"], anyof_row["const"])
+                    if isinstance(vlist_row["const"], bool):
+                        converted_value = bool_to_string.get(vlist_row["const"], vlist_row["const"])
                     else:
-                        converted_value = anyof_row["const"]
+                        converted_value = vlist_row["const"]
                     values_ws.cell(values_row_number, 2).value = converted_value
 
-                    if "description" in anyof_row:
-                        values_ws.cell(values_row_number, 3).value = anyof_row["description"]
-                    if "source" in anyof_row:
-                        values_ws.cell(values_row_number, 4).value = anyof_row["source"]
+                    if "description" in vlist_row:
+                        values_ws.cell(values_row_number, 3).value = vlist_row["description"]
+                    if "source" in vlist_row:
+                        values_ws.cell(values_row_number, 4).value = vlist_row["source"]
                     values_row_number += 1
 
     template_workbook.save(args.output_file)
