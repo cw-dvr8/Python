@@ -19,9 +19,11 @@ Execution: validate_using_schema.py <JSON schema> <object to be validated>
 """
 
 import argparse
+import json
 import jsonschema
 import pandas as pd
 from schema_tools import load_and_deref
+from schema_tools import values_list_keywords
 
 # This function is necessary when references are allowed to contain multiple
 # types. It has been decided as of now that multiple types will not be allowed,
@@ -31,7 +33,7 @@ from schema_tools import load_and_deref
 def convert_to_boolean(data_row, val_schema):
 
     bool_conversion = {"TRUE": True, "FALSE": False}
-    values_list_keys = ["anyOf", "enum"]
+    values_list_keys = values_list_keywords()
     converted_row = dict()
 
     # We only want to convert strings into Booleans if the field has a controlled
