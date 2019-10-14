@@ -43,3 +43,16 @@ def load_and_deref(schema_file_handle):
             json_schema["properties"][schema_key] = json_schema["properties"][schema_key]
 
     return(ref_location, json_schema)
+
+
+"""
+Function: values_list_keywords
+
+Purpose: Return the current list of JSON keywords that designate a values list.
+
+Arguments: None
+
+"""
+
+def values_list_keywords():
+    return(["anyOf", "enum"])
