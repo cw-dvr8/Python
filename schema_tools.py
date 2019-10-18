@@ -13,7 +13,7 @@ Function: convert_bool_to_string
 Purpose: Convert a value from the Python Boolean representation (True/False)
          into a lower case string representation (true/false).
 
-Arguments: A variable that might contain a Python Boolean values
+Arguments: A variable that might contain a Python Boolean value
 
 Returns: Either a) a string representation of a Boolean value if
          the value passed in was a Python Boolean, or b) the original
@@ -24,11 +24,34 @@ Returns: Either a) a string representation of a Boolean value if
 def convert_bool_to_string(input_value):
     string_conversion = {True: "true", False: "false"}
 
-    # Make sure that the input value is either a string or a Boolean.
-    # Passing a number into the conversion will convert any 0/1 values
-    # into false/true.
-    if (isinstance(input_value, bool)) or (isinstance(input_value, str)):
+    # Make sure that the input value is a Boolean. Passing a string in
+    # will probably not matter, but passing a number into the conversion
+    # will convert any 0/1 values into false/true.
+    if isinstance(input_value, bool):
         return_value = string_conversion.get(input_value, input_value)
+    else:
+       return_value = input_value
+
+    return(return_value)
+
+
+"""
+Function: convert_string_to_bool
+
+Purpose: Convert a string true/false value into a Python Boolean value (True/False)
+
+Arguments: A variable that might contain a true/false value
+
+Returns: Either a) a Boolean value if the value contained a string
+         true/false value, or b) the original value if it did not.
+
+"""
+
+def convert_string_to_bool(input_value):
+    bool_conversion = {"TRUE": True, "FALSE": False}
+
+    if isinstance(input_value, str):
+        return_value = bool_conversion.get(input_value.upper(), input_value)
     else:
        return_value = input_value
 
