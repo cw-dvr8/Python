@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
 
 """
-Program: create_dccvalidator_table_from_schema.py
+Program: create_synapse_table_from_schema.py
 
 Purpose: Use a JSON validation schema to generate a Synapse table to be
          used by the dccvalidator.
 
 Input parameters: Full pathname to the JSON validation schema
-                  ID of the Synapse parent project
-                  Synapse table name
+                  new_table OR overwrite_table
+                  new_table parameters: Synapse parent project ID, table name
+                  overwrite_table parameters: Synapse ID of the table to be overwritten
 
 Outputs: Synapse table
 
-Execution: create_dccvalidator_table_from_schema.py <JSON schema>
-               <parent project Synapse ID>
+Execution (new table): create_synapse_table_from_schema.py --json_schema_file <JSON schema>
+                       new_table --parent_synapse_id <parent project Synapse ID>
+                       --synapse_table_name <table name>
+
+Execution (overwrite table): create_synapse_table_from_schema.py --json_schema_file <JSON schema>
+                             overwrite_table --table_synapse_id <Synapse table ID>
 
 """
 
