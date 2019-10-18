@@ -20,46 +20,21 @@ Execution: create_dccvalidator_table_from_schema.py <JSON schema>
 import argparse
 import os
 import pandas as pd
-from schema_tools import convert_bool_to_string
-from schema_tools import load_and_deref
-from schema_tools import values_list_keywords
+from schema_tools import convert_bool_to_string, load_and_deref, values_list_keywords
 import synapseclient
 from synapseclient import Column, Schema, Table
 from urllib.parse import urldefrag
 
-def main():
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("json_schema_file", type=argparse.FileType("r"),
-                        help="Full pathname for the JSON schema file")
-    parser.add_argument("synapse_id", type=str,
-                        help="Synapse ID of the parent project")
-    parser.add_argument("synapse_table_name", type=str,
-                        help="Name of the Synapse table")
-
-    args = parser.parse_args()
+def process_schema(json_schema_file):
 
     values_list_keys = values_list_keywords()
 
     table_df = pd.DataFrame()
     ref_module_dict = {}
 
-    dccv_syn = synapseclient.Synapse()
-    dccv_syn.login(silent=True)
-
-    # Define column names for the synapse table.
-    dcc_column_names = [
-        Column(name="key", columnType="STRING", maximumSize=100),
-        Column(name="description", columnType="STRING", maximumSize=250),
-        Column(name="columnType", columnType="STRING", maximumSize=50),
-        Column(name="maximumSize", columnType="DOUBLE"),
-        Column(name="value", columnType="STRING", maximumSize=250),
-        Column(name="valueDescription", columnType="LARGETEXT"),
-        Column(name="source", columnType="STRING", maximumSize=250),
-        Column(name="module", columnType="STRING", maximumSize=100)]
-
     # Load the JSON schema. Start at the "properties" level to simplify the data structure.
-    ref_location_dict, json_schema = load_and_deref(args.json_schema_file)
+    ref_location_dict, json_schema = load_and_deref(json_schema_file)
     json_schema = json_schema["properties"]
 
     # Get the annotations module from the reference location for each key.
@@ -112,9 +87,70 @@ def main():
         else:
             table_df = table_df.append(output_row, ignore_index=True)
 
+    return(table_df)
+
+
+def process_new_table(args, syn):
+
+    # Define column names for the synapse table.
+    dcc_column_names = [
+        Column(name="key", columnType="STRING", maximumSize=100),
+        Column(name="description", columnType="STRING", maximumSize=250),
+        Column(name="columnType", columnType="STRING", maximumSize=50),
+        Column(name="maximumSize", columnType="DOUBLE"),
+        Column(name="value", columnType="STRING", maximumSize=250),
+        Column(name="valueDescription", columnType="LARGETEXT"),
+        Column(name="source", columnType="STRING", maximumSize=250),
+        Column(name="module", columnType="STRING", maximumSize=100)]
+
+    syn_table_df = process_schema(args.json_schema_file)
+
     # Build and populate the Synapse table.
-    table_schema = Schema(name=args.synapse_table_name, columns=dcc_column_names, parent=args.synapse_id)
-    dcc_table = dccv_syn.store(Table(table_schema, table_df))
+    table_schema = Schema(name=args.synapse_table_name, columns=dcc_column_names, parent=args.parent_synapse_id)
+    dcc_table = syn.store(Table(table_schema, syn_table_df))
+
+
+def process_overwrite_table(args, syn):
+
+    syn_table_df = process_schema(args.json_schema_file)
+
+    # Delete the old records from the Synapse table and then write out the
+    # new ones.
+    dcc_val_table = syn.get(args.table_synapse_id)
+    results = syn.tableQuery(f"select * from {dcc_val_table.id}")
+    delete_out = syn.delete(results)
+
+    table_out = syn.store(Table(dcc_val_table.id, syn_table_df))
+
+
+def main():
+
+    parent_parser = argparse.ArgumentParser(add_help=False)
+    parent_parser.add_argument("--json_schema_file", type=argparse.FileType("r"),
+                               help="Full pathname for the JSON schema file")
+
+    parser = argparse.ArgumentParser(parents=[parent_parser], add_help=True)
+
+    subparsers = parser.add_subparsers()
+
+    parser_new_table = subparsers.add_parser("new_table", help="New table help")
+    parser_new_table.add_argument("--parent_synapse_id", type=str,
+                                  help="Synapse ID of the parent project")
+    parser_new_table.add_argument("--synapse_table_name", type=str,
+                                  help="Name of the Synapse table")
+    parser_new_table.set_defaults(func=process_new_table)
+
+    parser_overwrite_table = subparsers.add_parser("overwrite_table", help="Overwrite table help")
+    parser_overwrite_table.add_argument("--table_synapse_id", type=str,
+                                        help="Synapse ID of the table to be overwritten")
+    parser_overwrite_table.set_defaults(func=process_overwrite_table)
+
+    args = parser.parse_args()
+
+    dccv_syn = synapseclient.Synapse()
+    dccv_syn.login(silent=True)
+
+    args.func(args, dccv_syn)
 
 
 if __name__ == "__main__":
