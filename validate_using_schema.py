@@ -22,6 +22,7 @@ import argparse
 import json
 import jsonschema
 import pandas as pd
+from schema_tools import convert_bool_to_string
 from schema_tools import load_and_deref
 from schema_tools import values_list_keywords
 
@@ -78,13 +79,9 @@ def convert_to_boolean(data_row, val_schema):
 
 def convert_from_boolean(data_row, val_schema):
 
-    string_conversion = {True: "true", False: "false"}
-    values_list_keys = ["anyOf", "enum"]
+    values_list_keys = values_list_keywords()
     converted_row = dict()
 
-    # We only want to convert Booleans into strings if the field has a controlled
-    # values list and has more than one possible type, e.g. "true", "false", "Unknown".
-    # In that instance, we want to convert a Boolean true/false to a string true/false.
     for rec_key in data_row:
             
         # Pass the row through if:
@@ -98,6 +95,9 @@ def convert_from_boolean(data_row, val_schema):
             converted_row[rec_key] = data_row[rec_key]
 
         else:
+            # We only want to convert Booleans into strings if the field has a controlled
+            # values list and has more than one possible type, e.g. "true", "false", "Unknown".
+            # In that instance, we want to convert a Boolean True/False to a string true/false.
             vkey = list(set(values_list_keys).intersection(val_schema["properties"][rec_key]))[0]
             string_is_possible = False
             for schema_values in val_schema["properties"][rec_key][vkey]:
@@ -106,7 +106,7 @@ def convert_from_boolean(data_row, val_schema):
                     break
 
             if string_is_possible:
-                converted_row[rec_key] = string_conversion.get(data_row[rec_key], data_row[rec_key])
+                converted_row[rec_key] = convert_bool_to_string(data_row[rec_key])
             else:
                 converted_row[rec_key] = data_row[rec_key]
 
