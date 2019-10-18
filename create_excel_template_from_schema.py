@@ -20,6 +20,7 @@ Execution: create_excel_template_from_schema.py <JSON schema> <output file>
 
 import argparse
 from openpyxl import Workbook
+from schema_tools import convert_bool_to_string
 from schema_tools import load_and_deref
 from schema_tools import values_list_keywords
 
@@ -33,7 +34,6 @@ def main():
 
     args = parser.parse_args()
 
-    bool_to_string = {True: "true", False: "false"}
     values_list_keys = values_list_keywords()
 
     template_workbook = Workbook()
@@ -92,12 +92,9 @@ def main():
 
                     # If the value is a Boolean, we have to convert it to a string; otherwise
                     # Excel will force it into all-caps, i.e. (TRUE, FALSE) and this is not
-                    # what we want.
-                    if isinstance(vlist_row["const"], bool):
-                        converted_value = bool_to_string.get(vlist_row["const"], vlist_row["const"])
-                    else:
-                        converted_value = vlist_row["const"]
-                    values_ws.cell(values_row_number, 2).value = converted_value
+                    # what we want. The function converts Booleans, but if the value is not a
+                    # Boolean it will return the original value.
+                    values_ws.cell(values_row_number, 2).value = convert_bool_to_string(vlist_row["const"])
 
                     if "description" in vlist_row:
                         values_ws.cell(values_row_number, 3).value = vlist_row["description"]
