@@ -8,6 +8,34 @@ Purpose: Common functions used by validation or template generation programs.
 """
 
 """
+Function: convert_bool_to_string
+
+Purpose: Convert a value from the Python Boolean representation (True/False)
+         into a lower case string representation (true/false).
+
+Arguments: A variable that might contain a Python Boolean values
+
+Returns: Either a) a string representation of a Boolean value if
+         the value passed in was a Python Boolean, or b) the original
+         value if it was not.
+
+"""
+
+def convert_bool_to_string(input_value):
+    string_conversion = {True: "true", False: "false"}
+
+    # Make sure that the input value is either a string or a Boolean.
+    # Passing a number into the conversion will convert any 0/1 values
+    # into false/true.
+    if (isinstance(input_value, bool)) or (isinstance(input_value, str)):
+        return_value = string_conversion.get(input_value, input_value)
+    else:
+       return_value = input_value
+
+    return(return_value)
+
+
+"""
 Function: load_and_deref
 
 Purpose: Load the JSON validation schema and resolve any $ref statements.
