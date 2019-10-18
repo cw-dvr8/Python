@@ -20,6 +20,7 @@ Execution: create_dccvalidator_table_from_schema.py <JSON schema>
 import argparse
 import os
 import pandas as pd
+from schema_tools import convert_bool_to_string
 from schema_tools import load_and_deref
 from schema_tools import values_list_keywords
 import synapseclient
@@ -88,12 +89,16 @@ def main():
                 output_row["maximumSize"] = json_schema[json_key]["maximumSize"]
 
             # A values list could be designated with different keys depending on the
-            # schema. See the declaration of the values_list_keys list above.
+            # schema.
             if any([value_key in json_schema[json_key] for value_key in values_list_keys]):
                 vkey = list(set(values_list_keys).intersection(json_schema[json_key]))[0]
                 for values_row in json_schema[json_key][vkey]:
                     if "const" in values_row:
-                        output_row["value"] = values_row["const"]
+                        # Run the value through a function that will convert any Python
+                        # Boolean values to a lower case string representation. If the
+                        # value is not a Python Boolean, the function returns the original
+                        # value.
+                        output_row["value"] = convert_bool_to_string(values_row["const"])
 
                     if "description" in values_row:
                         output_row["valueDescription"] = values_row["description"]
