@@ -21,6 +21,7 @@ Execution: create_template_from_schema.py <JSON schema> <output file>
 
 import argparse
 import csv
+from schema_tools import convert_bool_to_string
 from schema_tools import load_and_deref
 from schema_tools import values_list_keywords
 
@@ -91,18 +92,10 @@ def main():
                     vkey = list(set(values_list_keys).intersection(json_schema["properties"][json_key]))[0]
                     for value_row in json_schema["properties"][json_key][vkey]:
                         if "const" in value_row:
-                            if len(output_row) > 0:
-                                output_row["possible values"] = value_row["const"]
-                                if "description" in value_row:
-                                    output_row["possible values definitions"] = value_row["description"]
-                                definitions_writer.writerow(output_row)
-                                output_row = {}
-                            else:
-                                output_row["possible values"] = value_row["const"]
-                                if "description" in value_row:
-                                    output_row["possible values definitions"] = value_row["description"]
-                                definitions_writer.writerow(output_row)
-                                output_row = {}
+                            output_row["possible values"] = convert_bool_to_string(value_row["const"])
+                            if "description" in value_row:
+                                output_row["possible values definitions"] = value_row["description"]
+                            definitions_writer.writerow(output_row)
                 else:
                     definitions_writer.writerow(output_row)
 
