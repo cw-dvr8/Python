@@ -59,6 +59,32 @@ def convert_string_to_bool(input_value):
 
 
 """
+Function: convert_string_to_numeric
+
+Purpose: Convert a string numeric value into the appropriate numeric typ (either
+         integer or float).
+
+Arguments: A variable that might contain a string representation of a number.
+
+Returns: Either a) a number, or b) the original value if the string was not a number.
+
+"""
+
+
+def convert_string_to_numeric(input_value):
+
+    if input_value.isnumeric():
+        return_value = int(input_value)
+    elif input_value.replace(".", "", 1).isnumeric():
+        return_value = float(input_value)
+    else:
+       return_value = input_value
+
+    return(return_value)
+
+
+
+"""
 Function: load_and_deref
 
 Purpose: Load the JSON validation schema and resolve any $ref statements.
