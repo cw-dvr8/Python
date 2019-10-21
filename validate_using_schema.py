@@ -63,7 +63,7 @@ def convert_to_boolean(data_row, val_schema):
 
             if number_is_possible:
                 returned_value = convert_string_to_numeric(data_row[rec_key])
-                if not(isinstance(returned_value, str):
+                if not(isinstance(returned_value, str)):
                     converted_row[rec_key] = returned_value
                 else:
                     converted_row[rec_key] = convert_string_to_bool(data_row[rec_key])
