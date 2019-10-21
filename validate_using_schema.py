@@ -22,9 +22,8 @@ import argparse
 import json
 import jsonschema
 import pandas as pd
-from schema_tools import convert_bool_to_string
-from schema_tools import load_and_deref
-from schema_tools import values_list_keywords
+from schema_tools import convert_bool_to_string, convert_string_to_bool, convert_string_to_numeric
+from schema_tools import load_and_deref, values_list_keywords
 
 # This function is necessary when references are allowed to contain multiple
 # types. It has been decided as of now that multiple types will not be allowed,
@@ -33,7 +32,6 @@ from schema_tools import values_list_keywords
 
 def convert_to_boolean(data_row, val_schema):
 
-    bool_conversion = {"TRUE": True, "FALSE": False}
     values_list_keys = values_list_keywords()
     converted_row = dict()
 
@@ -64,15 +62,14 @@ def convert_to_boolean(data_row, val_schema):
                     break
 
             if number_is_possible:
-                if data_row[rec_key].isnumeric():
-                    converted_row[rec_key] = int(data_row[rec_key])
-                elif data_row[rec_key].replace(".", "", 1).isnumeric():
-                    converted_row[rec_key] = float(data_row[rec_key])
+                returned_value = convert_string_to_numeric(data_row[rec_key])
+                if not(isinstance(returned_value, str):
+                    converted_row[rec_key] = returned_value
                 else:
-                    converted_row[rec_key] = bool_conversion.get(data_row[rec_key].upper(), data_row[rec_key])
+                    converted_row[rec_key] = convert_string_to_bool(data_row[rec_key])
 
             else:
-                converted_row[rec_key] = bool_conversion.get(data_row[rec_key].upper(), data_row[rec_key])
+                converted_row[rec_key] = convert_string_to_bool(data_row[rec_key])
 
     return converted_row
 
@@ -158,9 +155,8 @@ def main():
             # JSON validation schema.
             clean_record = {k: data_record[k] for k in data_record if data_record[k] is not None}
 
-            # Convert string true/false values to Boolean true/false values only if the JSON key
-            # is not strictly defined as a string column.
-            # converted_clean_record = convert_to_boolean(clean_record, json_schema)
+            # We are not currently allowing multiple types in reference definitions, so convert
+            # Booleans to strings if the key is also allowed to contain string values.
             converted_clean_record = convert_from_boolean(clean_record, json_schema)
 
             validate_object(json_schema, converted_clean_record)
@@ -168,8 +164,8 @@ def main():
     else:
         val_json_obj = json.load(args.validation_obj_file)
 
-        # Convert string true/false values to Boolean true/false values.
-        # converted_val_json_obj = convert_to_boolean(val_json_obj, json_schema)
+        # We are not currently allowing multiple types in reference definitions, so convert
+        # Booleans to strings if the key is also allowed to contain string values.
         converted_val_json_obj = convert_from_boolean(val_json_obj, json_schema)
 
         validate_object(json_schema, converted_val_json_obj)
