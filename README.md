@@ -1,3 +1,3 @@
-# Python
+## Python
 
-Storage space for Sage python code that is either not for a specific project or is experimental.
+Storage space for my Sage python code that may or may not be in production.
