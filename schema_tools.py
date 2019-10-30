@@ -83,7 +83,6 @@ def convert_string_to_numeric(input_value):
     return(return_value)
 
 
-
 """
 Function: load_and_deref
 
@@ -122,6 +121,41 @@ def load_and_deref(schema_file_handle):
             json_schema["properties"][schema_key] = json_schema["properties"][schema_key]
 
     return(ref_location_dict, json_schema)
+
+
+"""
+Function: validate_object
+
+Purpose: Validate a schema object against a JSON draft 7 schema.
+
+Arguments: - the JSON validator
+           - the object to validate
+           - any text to be prepended to the error string
+
+Returns: A string containing any errors found during validation
+
+"""
+
+def validate_object(json_validator, object_to_validate, **kwargs):
+
+    prepend_string = ""
+    error_string = ""
+
+    for in_string in kwargs.values():
+        prepend_string += in_string
+
+    schema_errors = json_validator.iter_errors(object_to_validate)
+    for error in schema_errors:
+        # If the first value in the realtive_schema_path deque is "properties", the
+        # second value is going to be the name of the column that is in error. If it
+        # is not, the problem is something other than a column type or value error
+        # and the column name will not be in the deque..
+        if error.relative_schema_path[0] == "properties":
+            error_string = error_string + f"{prepend_string} {error.relative_schema_path[1]}: {error.message}\n"
+        else:
+            error_string = error_string + f"{prepend_string} {error.message}\n"
+
+    return(error_string)
 
 
 """
