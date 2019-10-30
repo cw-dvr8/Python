@@ -23,7 +23,7 @@ import json
 import jsonschema
 import pandas as pd
 from schema_tools import convert_bool_to_string, convert_string_to_bool, convert_string_to_numeric
-from schema_tools import load_and_deref, values_list_keywords
+from schema_tools import load_and_deref, validate_object, values_list_keywords
 
 # This function is necessary when references are allowed to contain multiple
 # types. It has been decided as of now that multiple types will not be allowed,
@@ -110,20 +110,6 @@ def convert_from_boolean(data_row, val_schema):
     return converted_row
 
 
-def validate_object(json_val_schema, object_to_validate):
-    
-    schema_validator = jsonschema.Draft7Validator(json_val_schema)
-
-    schema_errors = schema_validator.iter_errors(object_to_validate)
-    for error in schema_errors:
-        # If the first value in the relative_schema_path deque is "properties", the
-        # second value is going to be the name of the column that is in error.
-        if error.relative_schema_path[0] == "properties":
-            print(f"{error.relative_schema_path[1]}: {error.message}")
-        else:
-            print(f"{error.message}")
-
-
 def main():
 
     parser = argparse.ArgumentParser()
@@ -136,8 +122,13 @@ def main():
 
     args = parser.parse_args()
 
-    # Load the JSON schema.
+    row_error = ""
+    validation_errors = ""
+    data_dict_list = []
+
+    # Load the JSON schema and create a validator..
     _, json_schema = load_and_deref(args.json_schema_file)
+    schema_validator = jsonschema.Draft7Validator(json_schema)
 
     # If the object to be validated is a manifest file, read it into a pandas
     # dataframe.  Otherwise, read it into JSON.
@@ -147,29 +138,37 @@ def main():
         # Pandas reads in empty fields as nan. Replace nan with None.
         data_file_df = data_file_df.replace({pd.np.nan: None})
 
-        # Convert the dataframe to a list of dictionaries and loop through it.
-        data_file_dict = data_file_df.to_dict(orient="records")
-        for data_record in data_file_dict:
+        data_dict_list = data_file_df.to_dict(orient="records")
 
-            # Remove any None values from the dictionary - it simplifies the coding of the
-            # JSON validation schema.
-            clean_record = {k: data_record[k] for k in data_record if data_record[k] is not None}
+        # The first row of a manifest file (csv) that contains actual data will
+        # be row 2 (header is line 1), so add 2 to the python row counter.
+        first_data_row = 2
 
-            # We are not currently allowing multiple types in reference definitions, so convert
-            # Booleans to strings if the key is also allowed to contain string values.
-            converted_clean_record = convert_from_boolean(clean_record, json_schema)
-
-            validate_object(json_schema, converted_clean_record)
-    
     else:
-        val_json_obj = json.load(args.validation_obj_file)
+        json_file_dict = json.load(args.validation_obj_file)
+        data_dict_list.append(json_file_dict)
+
+        # A JSON file is considered to only have one row of data.
+        first_data_row = 1
+
+    for row_number, data_record in enumerate(data_dict_list):
+
+        # Remove any None values from the dictionary - it simplifies the coding of the
+        # JSON validation schema.
+        clean_record = {k: data_record[k] for k in data_record if data_record[k] is not None}
 
         # We are not currently allowing multiple types in reference definitions, so convert
         # Booleans to strings if the key is also allowed to contain string values.
-        converted_val_json_obj = convert_from_boolean(val_json_obj, json_schema)
+        converted_clean_record = convert_from_boolean(clean_record, json_schema)
 
-        validate_object(json_schema, converted_val_json_obj)
+        row_text = f"Row {row_number + first_data_row}:"
+        row_error = validate_object(schema_validator, converted_clean_record, prepend_text=row_text)
 
+        if row_error:
+            validation_errors += row_error
+
+    print(validation_errors)
+    
 
 if __name__ == "__main__":
     main()
