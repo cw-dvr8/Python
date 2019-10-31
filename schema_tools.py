@@ -70,7 +70,6 @@ Returns: Either a) a number, or b) the original value if the string was not a nu
 
 """
 
-
 def convert_string_to_numeric(input_value):
 
     if input_value.isnumeric():
@@ -81,6 +80,79 @@ def convert_string_to_numeric(input_value):
        return_value = input_value
 
     return(return_value)
+
+
+"""
+Function: get_schema_properties
+
+Purpose: Return dictionaries of schema properties needed to generate templates.
+
+Input parameters: File object pointing to the JSON schema file
+
+Returns: A dictionary of key types, definitions, and required keys
+             definitions_dict[key]["type"] - string
+             definitions_dict[key]["description"] - string
+             definitions_dict[key]["required"] - Boolean
+
+         A dictionary of key values lists
+             values_dict[key][list index]["value"] - string
+             values_dict[key][list index]["valueDescription"] - string
+             values_dict[key][list index]["source"] - string
+
+"""
+
+def get_schema_properties(json_schema_file):
+
+    import collections
+    from schema_tools import convert_bool_to_string, load_and_deref, values_list_keywords
+
+    values_list_keys = values_list_keywords()
+
+    definitions_dict = collections.defaultdict(dict)
+    definitions_keys = ["type", "description", "required"]
+    values_dict = collections.defaultdict(list)
+    values_keys = ["value", "valueDescription", "source"]
+
+    # Load the JSON schema.
+    _, json_schema = load_and_deref(json_schema_file)
+
+    for schema_key in json_schema["properties"].keys():
+        definitions_dict[schema_key] = dict.fromkeys(definitions_keys)
+
+        if len(json_schema["properties"][schema_key].keys()) > 0:
+            if "type" in json_schema["properties"][schema_key]:
+                definitions_dict[schema_key]["type"] = json_schema["properties"][schema_key]["type"]
+
+            if "description" in json_schema["properties"][schema_key]:
+                definitions_dict[schema_key]["description"] = json_schema["properties"][schema_key]["description"]
+
+            if ("required" in json_schema) and (schema_key in json_schema["required"]):
+                definitions_dict[schema_key]["required"] = True
+            else:
+                definitions_dict[schema_key]["required"] = False
+
+            if "pattern" in json_schema["properties"][schema_key]:
+                values_dict[schema_key].append({"value": json_schema["properties"][schema_key]["pattern"],
+                                                "valueDescription": "",
+                                                "source": ""})
+
+            elif any([value_key in json_schema["properties"][schema_key] for value_key in values_list_keys]):
+                vkey = list(set(values_list_keys).intersection(json_schema["properties"][schema_key]))[0]
+                for value_row in json_schema["properties"][schema_key][vkey]:
+                    key_values_dict = dict.fromkeys(values_keys)
+
+                    if "const" in value_row:
+                        key_values_dict["value"] = convert_bool_to_string(value_row["const"])
+
+                    if "description" in value_row:
+                        key_values_dict["valueDescription"] = value_row["description"]
+
+                    if "source" in value_row:
+                        key_values_dict["source"] = value_row["source"]
+
+                    values_dict[schema_key].append(key_values_dict)
+
+    return(definitions_dict, values_dict)
 
 
 """
@@ -128,9 +200,9 @@ Function: validate_object
 
 Purpose: Validate a schema object against a JSON draft 7 schema.
 
-Arguments: - the JSON validator
-           - the object to validate
-           - any text to be prepended to the error string
+Arguments: The JSON validator
+           The object to validate
+           Any text to be prepended to the error string
 
 Returns: A string containing any errors found during validation
 
