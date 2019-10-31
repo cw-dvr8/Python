@@ -21,7 +21,7 @@ Execution: create_template_from_schema.py <JSON schema> <output file>
 
 import argparse
 import csv
-from schema_tools import get_schema_properties
+from schema_tools import get_schema_properties, load_and_deref
 
 def main():
 
@@ -38,7 +38,8 @@ def main():
     # Define headers for the definitions file in case one is requested.
     definition_column_headers = ["key", "type", "description", "required", "possibleValue", "possibleValueDescription", "source"]
 
-    definitions,values,_ = get_schema_properties(args.json_schema_file)
+    _, json_schema = load_and_deref(args.json_schema_file)
+    definitions,values = get_schema_properties(json_schema)
 
     # Get the schema keys into a list and then write them to the output file.
     column_header_list = []
