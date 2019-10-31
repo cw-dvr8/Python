@@ -100,10 +100,6 @@ Returns: A dictionary of key types, definitions, required keys, and maximum size
              values_dict[key][list index]["valueDescription"] - string
              values_dict[key][list index]["source"] - string
 
-         A dictionary containing the full path of the object reference. This
-         is returned by the call to the load_and_deref function and is passed
-         through.
-
 """
 
 def get_schema_properties(json_schema):
