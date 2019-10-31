@@ -21,9 +21,7 @@ Execution: create_template_from_schema.py <JSON schema> <output file>
 
 import argparse
 import csv
-from schema_tools import convert_bool_to_string
-from schema_tools import load_and_deref
-from schema_tools import values_list_keywords
+from schema_tools import get_schema_properties
 
 def main():
 
@@ -37,17 +35,14 @@ def main():
 
     args = parser.parse_args()
 
-    values_list_keys = values_list_keywords()
-
     # Define headers for the definitions file in case one is requested.
-    definition_column_headers = ["key", "type", "definition", "required", "rules", "possible values", "possible values definitions"]
+    definition_column_headers = ["key", "type", "description", "required", "possibleValue", "possibleValueDescription", "source"]
 
-    # Load the JSON schema.
-    _, json_schema = load_and_deref(args.json_schema_file)
+    definitions, values = get_schema_properties(args.json_schema_file)
 
     # Get the schema keys into a list and then write them to the output file.
     column_header_list = []
-    for column_header in json_schema["properties"].keys():
+    for column_header in definitions.keys():
         column_header_list.append(column_header)
 
     template_writer = csv.writer(args.output_file, delimiter=",")
@@ -69,35 +64,22 @@ def main():
         definitions_writer = csv.DictWriter(def_output_file, fieldnames=definition_column_headers)
         definitions_writer.writeheader()
 
-        for json_key in json_schema["properties"]:
+        for json_key in definitions:
             output_row = {}
 
             # Assemble the output row.
             output_row["key"] = json_key
-
-            if len(json_schema["properties"][json_key].keys()) > 0:
-                if "type" in json_schema["properties"][json_key]:
-                    output_row["type"] = json_schema["properties"][json_key]["type"]
-
-                if "description" in json_schema["properties"][json_key]:
-                    output_row["definition"] = json_schema["properties"][json_key]["description"]
-
-                if json_key in json_schema["required"]:
-                    output_row["required"] = "Yes"
-
-                if "pattern" in json_schema["properties"][json_key]:
-                    output_row["rules"] = json_schema["properties"][json_key]["pattern"]
-
-                if any([value_key in json_schema["properties"][json_key] for value_key in values_list_keys]):
-                    vkey = list(set(values_list_keys).intersection(json_schema["properties"][json_key]))[0]
-                    for value_row in json_schema["properties"][json_key][vkey]:
-                        if "const" in value_row:
-                            output_row["possible values"] = convert_bool_to_string(value_row["const"])
-                            if "description" in value_row:
-                                output_row["possible values definitions"] = value_row["description"]
-                            definitions_writer.writerow(output_row)
-                else:
+            output_row["type"] = definitions[json_key]["type"]
+            output_row["description"] = definitions[json_key]["description"]
+            output_row["required"] = definitions[json_key]["required"]
+            if json_key in values:
+                for value_row in values[json_key]:
+                    output_row["possibleValue"] = value_row["value"]
+                    output_row["possibleValueDescription"] = value_row["valueDescription"]
+                    output_row["source"] = value_row["source"]
                     definitions_writer.writerow(output_row)
+            else:
+                definitions_writer.writerow(output_row)
 
         def_output_file.close()
 
