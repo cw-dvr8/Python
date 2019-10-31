@@ -104,7 +104,7 @@ Returns: A dictionary of key types, definitions, and required keys
 def get_schema_properties(json_schema_file):
 
     import collections
-    from schema_tools import convert_bool_to_string, load_and_deref, values_list_keywords
+    from schema_tools import load_and_deref, values_list_keywords
 
     values_list_keys = values_list_keywords()
 
@@ -142,7 +142,7 @@ def get_schema_properties(json_schema_file):
                     key_values_dict = dict.fromkeys(values_keys)
 
                     if "const" in value_row:
-                        key_values_dict["value"] = convert_bool_to_string(value_row["const"])
+                        key_values_dict["value"] = value_row["const"]
 
                     if "description" in value_row:
                         key_values_dict["valueDescription"] = value_row["description"]
