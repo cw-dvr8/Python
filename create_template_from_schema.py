@@ -38,7 +38,7 @@ def main():
     # Define headers for the definitions file in case one is requested.
     definition_column_headers = ["key", "type", "description", "required", "possibleValue", "possibleValueDescription", "source"]
 
-    definitions, values = get_schema_properties(args.json_schema_file)
+    definitions,values,_ = get_schema_properties(args.json_schema_file)
 
     # Get the schema keys into a list and then write them to the output file.
     column_header_list = []
