@@ -89,32 +89,34 @@ Purpose: Return dictionaries of schema properties needed to generate templates.
 
 Input parameters: File object pointing to the JSON schema file
 
-Returns: A dictionary of key types, definitions, and required keys
+Returns: A dictionary of key types, definitions, required keys, and maximum sizes
              definitions_dict[key]["type"] - string
              definitions_dict[key]["description"] - string
              definitions_dict[key]["required"] - Boolean
+             definitions_dict[key]["maximumSize"] - integer
 
          A dictionary of key values lists
              values_dict[key][list index]["value"] - string
              values_dict[key][list index]["valueDescription"] - string
              values_dict[key][list index]["source"] - string
 
+         A dictionary containing the full path of the object reference. This
+         is returned by the call to the load_and_deref function and is passed
+         through.
+
 """
 
-def get_schema_properties(json_schema_file):
+def get_schema_properties(json_schema):
 
     import collections
-    from schema_tools import load_and_deref, values_list_keywords
+    from schema_tools import values_list_keywords
 
     values_list_keys = values_list_keywords()
 
     definitions_dict = collections.defaultdict(dict)
-    definitions_keys = ["type", "description", "required"]
+    definitions_keys = ["type", "description", "required", "maximumSize"]
     values_dict = collections.defaultdict(list)
     values_keys = ["value", "valueDescription", "source"]
-
-    # Load the JSON schema.
-    _, json_schema = load_and_deref(json_schema_file)
 
     for schema_key in json_schema["properties"].keys():
         definitions_dict[schema_key] = dict.fromkeys(definitions_keys)
@@ -125,6 +127,9 @@ def get_schema_properties(json_schema_file):
 
             if "description" in json_schema["properties"][schema_key]:
                 definitions_dict[schema_key]["description"] = json_schema["properties"][schema_key]["description"]
+
+            if "maximumSize" in json_schema["properties"][schema_key]:
+                definitions_dict[schema_key]["maximumSize"] = json_schema["properties"][schema_key]["maximumSize"]
 
             if ("required" in json_schema) and (schema_key in json_schema["required"]):
                 definitions_dict[schema_key]["required"] = True
@@ -162,8 +167,8 @@ Purpose: Load the JSON validation schema and resolve any $ref statements.
 
 Arguments: JSON schema file handle
 
-Returns: The full path of the object reference, and a dereferenced JSON schema in
-         dictionary form
+Returns: A dictionary containing the full path of the object reference, and a
+         dereferenced JSON schema in dictionary form
 
 """
 
