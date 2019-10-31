@@ -25,7 +25,7 @@ Execution (overwrite table): create_synapse_table_from_schema.py --json_schema_f
 import argparse
 import os
 import pandas as pd
-from schema_tools import convert_bool_to_string, load_and_deref, values_list_keywords
+from schema_tools import convert_bool_to_string, get_schema_properties, load_and_deref
 import synapseclient
 from synapseclient import Column, Schema, Table
 from urllib.parse import urldefrag
@@ -33,61 +33,45 @@ from urllib.parse import urldefrag
 
 def process_schema(json_schema_file):
 
-    values_list_keys = values_list_keywords()
+    output_row_keys = ["key", "module", "description", "columnType", "maximumSize", "value", "valueDescription", "source"]
 
     table_df = pd.DataFrame()
     ref_module_dict = {}
 
-    # Load the JSON schema. Start at the "properties" level to simplify the data structure.
     ref_location_dict, json_schema = load_and_deref(json_schema_file)
-    json_schema = json_schema["properties"]
 
-    # Get the annotations module from the reference location for each key.
+    # Derive the name of the annotations module from the reference location.
     for schema_key in ref_location_dict:
         ref_doc, ref_frag = urldefrag(ref_location_dict[schema_key])
         ref_path, ref_file = os.path.split(ref_doc)
         ref_module_dict[schema_key] = os.path.splitext(ref_file)[0]
 
+    definitions, values = get_schema_properties(json_schema)
+
     # Build a Pandas dataframe out of the schema.
-    for json_key in json_schema:
-        output_row = {}
+    for schema_key in definitions:
+        output_row = dict.fromkeys(output_row_keys)
 
         # Assemble the output row.
-        output_row["key"] = json_key
+        output_row["key"] = schema_key
 
-        if json_key in ref_module_dict:
-            output_row["module"] = ref_module_dict[json_key]
+        if schema_key in ref_module_dict:
+            output_row["module"] = ref_module_dict[schema_key]
 
-        if len(json_schema[json_key].keys()) > 0:
-            if "description" in json_schema[json_key]:
-                output_row["description"] = json_schema[json_key]["description"]
+        output_row["description"] = definitions[schema_key]["description"]
+        if definitions[schema_key]["type"]:
+            output_row["columnType"] = definitions[schema_key]["type"].upper()
+        output_row["maximumSize"] = definitions[schema_key]["maximumSize"]
 
-            if "type" in json_schema[json_key]:
-                output_row["columnType"] = json_schema[json_key]["type"]
+        if schema_key in values:
+            for values_row in values[schema_key]:
+                # Run the value through a function that will convert any Python Boolean
+                # values to a lower case string representation. If the value is not a
+                # Python Boolean, the function returns the original value.
+                output_row["value"] = convert_bool_to_string(values_row["value"])
+                output_row["valueDescription"] = values_row["valueDescription"]
+                output_row["source"] = values_row["source"]
 
-            if "maximumSize" in json_schema[json_key]:
-                output_row["maximumSize"] = json_schema[json_key]["maximumSize"]
-
-            # A values list could be designated with different keys depending on the
-            # schema.
-            if any([value_key in json_schema[json_key] for value_key in values_list_keys]):
-                vkey = list(set(values_list_keys).intersection(json_schema[json_key]))[0]
-                for values_row in json_schema[json_key][vkey]:
-                    if "const" in values_row:
-                        # Run the value through a function that will convert any Python
-                        # Boolean values to a lower case string representation. If the
-                        # value is not a Python Boolean, the function returns the original
-                        # value.
-                        output_row["value"] = convert_bool_to_string(values_row["const"])
-
-                    if "description" in values_row:
-                        output_row["valueDescription"] = values_row["description"]
-
-                    if "source" in values_row:
-                        output_row["source"] = values_row["source"]
-
-                    table_df = table_df.append(output_row, ignore_index=True)
-            else:
                 table_df = table_df.append(output_row, ignore_index=True)
         else:
             table_df = table_df.append(output_row, ignore_index=True)
