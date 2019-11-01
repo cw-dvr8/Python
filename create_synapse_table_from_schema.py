@@ -60,7 +60,11 @@ def process_schema(json_schema_file):
 
         output_row["description"] = definitions[schema_key]["description"]
         if definitions[schema_key]["type"]:
-            output_row["columnType"] = definitions[schema_key]["type"].upper()
+            # NUMBER is not a valid type in Synapse.
+            if definitions[schema_key]["type"].upper() == "NUMBER":
+                output_row["columnType"] = "DOUBLE"
+            else:
+                output_row["columnType"] = definitions[schema_key]["type"].upper()
         output_row["maximumSize"] = definitions[schema_key]["maximumSize"]
 
         if schema_key in values:
