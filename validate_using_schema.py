@@ -22,61 +22,11 @@ import argparse
 import json
 import jsonschema
 import pandas as pd
-from schema_tools import convert_bool_to_string, convert_string_to_bool, convert_string_to_numeric
-from schema_tools import load_and_deref, validate_object, values_list_keywords
-
-# This function is necessary when references are allowed to contain multiple
-# types. It has been decided as of now that multiple types will not be allowed,
-# but I am leaving this in anticipation of that decision being reversed in the
-# future.
-
-def convert_to_boolean(data_row, val_schema):
-
-    values_list_keys = values_list_keywords()
-    converted_row = dict()
-
-    # We only want to convert strings into Booleans if the field has a controlled
-    # values list and has more than one possible type, e.g. True, False, "Unknown".
-    # In that instance, we want to convert a string true/false to a Boolean true/false
-    # while ignoring case (true, TRUE, False, FaLsE, etc.).
-    for rec_key in data_row:
-            
-        # Pass the row through if:
-        # a) the key is not in the schema, i.e. the site put extra columns in the file;
-        # b) the value is not a string;
-        # c) the value is a string but there are no other alternative types/values for it in the schema
-        if ((rec_key not in val_schema["properties"])
-            or (not(isinstance(data_row[rec_key], str)))
-            or ((isinstance(data_row[rec_key], str))
-                and not(any(value_key in val_schema["properties"][rec_key] for value_key in values_list_keys)))):
-            converted_row[rec_key] = data_row[rec_key]
-
-        else:
-            # If it is possible for the key to contain a number and the string value is some sort of number,
-            # convert the string into a number.
-            vkey = list(set(values_list_keys).intersection(val_schema[rec_key]))[0]
-            number_is_possible = False
-            for schema_values in val_schema["properties"][rec_key][vkey]:
-                if ("type" in schema_values) and (schema_values["type"] in ["integer", "number"]):
-                    number_is_possible = True
-                    break
-
-            if number_is_possible:
-                returned_value = convert_string_to_numeric(data_row[rec_key])
-                if not(isinstance(returned_value, str)):
-                    converted_row[rec_key] = returned_value
-                else:
-                    converted_row[rec_key] = convert_string_to_bool(data_row[rec_key])
-
-            else:
-                converted_row[rec_key] = convert_string_to_bool(data_row[rec_key])
-
-    return converted_row
-
+import schema_tools
 
 def convert_from_boolean(data_row, val_schema):
 
-    values_list_keys = values_list_keywords()
+    values_list_keys = schema_tools.VALUES_LIST_KEYWORDS
     converted_row = dict()
 
     for rec_key in data_row:
@@ -127,7 +77,7 @@ def main():
     data_dict_list = []
 
     # Load the JSON schema and create a validator..
-    _, json_schema = load_and_deref(args.json_schema_file)
+    _, json_schema = schema_tools.load_and_deref(args.json_schema_file)
     schema_validator = jsonschema.Draft7Validator(json_schema)
 
     # If the object to be validated is a manifest file, read it into a pandas
@@ -161,9 +111,9 @@ def main():
         # Booleans to strings if the key is also allowed to contain string values.
         converted_clean_record = convert_from_boolean(clean_record, json_schema)
 
-        row_text = f"Row {row_number + first_data_row}:"
-        row_error = validate_object(schema_validator, converted_clean_record, prepend_text=row_text)
+        schema_errors = schema_validator.iter_errors(converted_clean_record)
 
+        row_error = schema_tools.validation_errors(schema_errors)
         if row_error:
             validation_errors += row_error
 
