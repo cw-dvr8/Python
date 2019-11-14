@@ -24,42 +24,6 @@ import jsonschema
 import pandas as pd
 import schema_tools
 
-def convert_from_boolean(data_row, val_schema):
-
-    values_list_keys = schema_tools.VALUES_LIST_KEYWORDS
-    converted_row = dict()
-
-    for rec_key in data_row:
-            
-        # Pass the row through if:
-        # a) the key is not in the schema, i.e. the site put extra columns in the file;
-        # b) the value is not a Boolean;
-        # c) the value is a Boolean but there are no other alternative types/values for it in the schema
-        if ((rec_key not in val_schema["properties"])
-            or (not(isinstance(data_row[rec_key], bool)))
-            or ((isinstance(data_row[rec_key], bool))
-                and not(any(value_key in val_schema["properties"][rec_key] for value_key in values_list_keys)))):
-            converted_row[rec_key] = data_row[rec_key]
-
-        else:
-            # We only want to convert Booleans into strings if the field has a controlled
-            # values list and has more than one possible type, e.g. "true", "false", "Unknown".
-            # In that instance, we want to convert a Boolean True/False to a string true/false.
-            vkey = list(set(values_list_keys).intersection(val_schema["properties"][rec_key]))[0]
-            string_is_possible = False
-            for schema_values in val_schema["properties"][rec_key][vkey]:
-                if ("const" in schema_values) and (isinstance(schema_values["const"], str)):
-                    string_is_possible = True
-                    break
-
-            if string_is_possible:
-                converted_row[rec_key] = convert_bool_to_string(data_row[rec_key])
-            else:
-                converted_row[rec_key] = data_row[rec_key]
-
-    return converted_row
-
-
 def main():
 
     parser = argparse.ArgumentParser()
@@ -109,7 +73,9 @@ def main():
 
         # We are not currently allowing multiple types in reference definitions, so convert
         # Booleans to strings if the key is also allowed to contain string values.
-        converted_clean_record = convert_from_boolean(clean_record, json_schema)
+        converted_clean_record = schema_tools.convert_from_other(clean_record,
+                                          json_schema,
+                                          schema_tools.convert_bool_to_string)
 
         schema_errors = schema_validator.iter_errors(converted_clean_record)
 
