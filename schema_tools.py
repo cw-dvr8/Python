@@ -36,6 +36,36 @@ def convert_bool_to_string(input_value):
     return return_value
 
 
+def convert_number_to_string(input_value):
+
+    """
+    Function: convert_number_to_string
+
+    Purpose: Convert a value from the Python numeric representation (float/int)
+             into a string representation.
+
+    Arguments: 
+        input_value - A variable that might contain a Python numeric value
+
+    Returns: Either a) a string representation of a numeric value if
+             the value passed in was a Python numeric, or b) the original
+             value if it was not.
+    """
+
+    # Make sure that the input value is numeric so that it does not
+    # inadvertently convert another type. If the Boolean check is not
+    # included, it will return a string representation of a Boolean value,
+    # i.e. "True"/"False".
+    if ((isinstance(input_value, (float, int))) and
+       (not(isinstance( input_value, bool)))):
+        return_value = str(input_value)
+    else:
+        return_value = input_value
+
+    return return_value
+
+
+
 def convert_string_to_bool(input_value):
     """
     Function: convert_string_to_bool
@@ -76,6 +106,60 @@ def convert_string_to_numeric(input_value):
         return_value = input_value
 
     return return_value
+
+
+def convert_from_other(data_row, val_schema, func_to_run):
+    """
+    Function: convert_from_other
+
+    Purpose: Converts non-string values to string representations.
+
+    This function in used by JSON validation programs in cases where a JSON
+    schema reference is not allowed to contain multiple types and values that
+    can contain more than one type are coerced to strings. In cases where a
+    reference is defined as a string and a value is read as Boolean (True/
+    False) or numeric (float/int), it will fail validation.
+
+    Input parameters: 
+        data_row - a dictionary representing a single row of data
+        val_schema - the JSON validation schema representing the structure
+                     of the data row.
+        func_to_run - the function to be run to do the conversion.
+
+    Returns: A dictionary representing the data row, with non-string values
+             converted to strings.
+    """
+    converted_row = dict()
+
+    for rec_key in data_row:
+        schema_val = val_schema["properties"][rec_key]
+
+        # Pass the row through if:
+        # a) the key is not in the schema, i.e. the site put extra columns in
+        #    the file;
+        # b) the value is a string;
+        # c) the value is not a string but there are no other alternative
+        #    types/values for it in the schema
+        if ((rec_key not in val_schema["properties"])
+            or (isinstance(data_row[rec_key], str))
+            or ((not(isinstance(data_row[rec_key], str)))
+                and not(any(value_key in schema_val for value_key in VALUES_LIST_KEYWORDS)))):
+            converted_row[rec_key] = data_row[rec_key]
+
+        else:
+            # We only want to convert other types into strings if the field has
+            # a controlled values list and has more than one possible type,
+            # e.g. "true", "false", "Unknown". In that instance, we want to
+            # convert a Boolean True/False to a string true/false.
+            vkey = list(set(VALUES_LIST_KEYWORDS).intersection(schema_val))[0]
+            for schema_values in schema_val[vkey]:
+                if ("const" in schema_values) and (isinstance(schema_values["const"], str)):
+                    converted_row[rec_key] = func_to_run(data_row[rec_key])
+                    break
+                else:
+                    converted_row[rec_key] = data_row[rec_key]
+
+    return converted_row
 
 
 def convert_string_to_other(data_row, val_schema, type_list, func_to_run):
