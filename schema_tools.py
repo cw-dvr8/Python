@@ -215,6 +215,85 @@ def convert_string_to_other(data_row, val_schema, type_list, func_to_run):
     return converted_row
 
 
+def get_definitions_values(json_schema):
+    """
+    Function: get_definitions_values
+
+    Purpose: Return pandas dataframes of schema properties needed to generate
+             templates.
+
+    Input parameters: File object pointing to the JSON schema file
+
+    Returns: A dataframe of key types, definitions, required keys, and maximum
+             sizes
+                 definitions_df["key"] - string
+                 definitions_df["type"] - string
+                 definitions_df["description"] - string
+                 definitions_df["required"] - Boolean
+                 definitions_df["maximumSize"] - integer
+
+             A dataframe of key values lists
+                 values_df["key"] - string
+                 values_df["value"] - string
+                 values_df["valueDescription"] - string
+                 values_df["source"] - string
+    """
+    import pandas as pd
+
+    values_list_keys = VALUES_LIST_KEYWORDS
+    definitions_columns = ["key", "type", "description", "required", "maximumSize"]
+    definitions_df = pd.DataFrame(columns=definitions_columns)
+    values_columns = ["key", "value", "valueDescription", "source"]
+    values_df = pd.DataFrame(columns=values_columns)
+
+    for schema_key in json_schema["properties"].keys():
+        definitions_dict = {}
+        definitions_dict["key"] = schema_key
+        schema_values = json_schema["properties"][schema_key]
+
+        if schema_values:
+            if "type" in schema_values:
+                definitions_dict["type"] = schema_values["type"]
+
+            if "description" in schema_values:
+                definitions_dict["description"] = schema_values["description"]
+
+            if "maximumSize" in schema_values:
+                definitions_dict["maximumSize"] = schema_values["maximumSize"]
+
+            if ("required" in json_schema) and (schema_key in json_schema["required"]):
+                definitions_dict["required"] = True
+            else:
+                definitions_dict["required"] = False
+
+            definitions_df = definitions_df.append(definitions_dict, ignore_index=True)
+
+            values_dict = {}
+            if "pattern" in schema_values:
+                values_dict["key"] = schema_key
+                values_dict["value"] = schema_values["pattern"]
+                values_df = values_df.append(values_dict, ignore_index=True)
+
+            elif any([value_key in schema_values for value_key in VALUES_LIST_KEYWORDS]):
+                vkey = list(set(VALUES_LIST_KEYWORDS).intersection(schema_values))[0]
+                for value_row in schema_values[vkey]:
+                    values_dict["key"] = schema_key
+
+                    if "const" in value_row:
+                        values_dict["value"] = value_row["const"]
+
+                    if "description" in value_row:
+                        values_dict["valueDescription"] = value_row["description"]
+
+                    if "source" in value_row:
+                        values_dict["source"] = value_row["source"]
+
+                    values_df = values_df.append(values_dict, ignore_index=True)
+                    values_dict = {}
+
+    return(definitions_df, values_df)
+
+
 def get_schema_properties(json_schema):
     """
     Function: get_schema_properties
