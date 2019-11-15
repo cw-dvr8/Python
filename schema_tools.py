@@ -344,13 +344,23 @@ def validation_errors(schema_errors, **kwargs):
         prepend_string += in_string
 
     for error in schema_errors:
-        # If the first value in the realtive_schema_path deque is "properties", the
-        # second value is going to be the name of the column that is in error. If it
-        # is not, the problem is something other than a column type or value error
-        # and the column name will not be in the deque..
+        # If the issue is a violation of the object properties, e.g. a
+        # type different than what has been defined or a value that is not in
+        # the enumerated list of allowed values, the first value in the
+        # relative_schema_path deque (0) is going to be "properties" and the
+        # second value is going to be the name of the object in error. This is
+        # useful to have because the error message will print the violation but
+        # not the object causing it.
+        #
+        # If the problem is a relational issue (i.e. an object that is
+        # conditionally required based on the value of other objects is 
+        # missing), the error message will contain the name of the object.
+        # The relative_schema_path deque will contain the constraint that was
+        # violated, but nothing useful for identifying the object, so only the
+        # error message is pertinent.
         if error.relative_schema_path[0] == "properties":
-            error_string += f"{prepend_string} {error.relative_schema_path[1]}: {error.message}\n"
+            error_string += f"{prepend_string}{error.relative_schema_path[1]}: {error.message}\n"
         else:
-            error_string += f"{prepend_string} {error.message}\n"
+            error_string += f"{prepend_string}{error.message}\n"
 
     return error_string
