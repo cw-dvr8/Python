@@ -11,7 +11,7 @@ Purpose: Uses a downloaded tab-delimited text file of the PsychENCODE Data
          A tab delimited text file is necessary to prevent problems with text
          fields that contain commas.
 
-Input parameters: 
+Input parameters:
     dcs_file - Full pathname to the DCS text file
     synapse_id - Synapse ID for the table to write to
 
@@ -28,15 +28,16 @@ from synapseclient import Table
 
 def main():
 
-    common_keys = ["rec_index", "grantNumber", "PIName", "institution",
-                   "dataLiaison", "dataLiaisonEmail", "proteinTargets"]
-    assay_keys = ["rec_index", "timepoint", "species", "repository",
-                  "lifeStage", "diagnosis", "GWAS", "WGS", "RNAseq", "IsoSeq",
-                  "ChIPseq", "HiChIP", "STARRseq", "ATACseq", "HiC",
-                  "CaptureC", "WGBS", "NOMeSeq", "RiboSeq", "proteomics",
-                  "assayOther", "assayOtherDescribe", "specimenOtherDescribe",
-                  "brainRegions", "sortedCellTypes", "numberUniqueDonors",
-                  "numberSpecimens"]
+    common_keys = ["rec_index", "Grant", "Contact PI", "Institution",
+                   "Data Liaison", "Data Liaison Email", "Protein Targets"]
+    assay_keys = ["rec_index", "Timepoint", "Species", "Individual ID Source",
+                  "Life Stage", "Primary Diagnosis", "GWAS", "wholeGenomeSeq",
+                  "rnaSeq", "ISOSeq", "ChIPSeq", "HiChIP", "STARRSeq",
+                  "ATACSeq", "HiC", "CaptureC", "WGBS", "NOMeSeq", "Ribo-Seq",
+                  "proteomics", "Assay Other", "Assay Other Describe",
+                  "Specimen Other Describe", "Brain Regions",
+                  "Sorted Cell Types", "Number Unique Donors",
+                  "Number Specimens", "Protein Targets"]
 
     parser = argparse.ArgumentParser()
     parser.add_argument("dcs_file", type=argparse.FileType("r"),
@@ -70,7 +71,7 @@ def main():
         else:
             common_dict = {}
             common_dict["rec_index"] = line_idx
-            common_dict["proteinTargets"] = record_list[58]
+            common_dict["Protein Targets"] = record_list[58]
             for i in range(1, 6):
                 common_dict[common_keys[i]] = record_list[i]
 
@@ -78,7 +79,7 @@ def main():
 
             assay_dict = {}
             assay_dict["rec_index"] = line_idx
-            assay_dict["timepoint"] = timepoint_1 + " - " + record_list[6]
+            assay_dict["Timepoint"] = timepoint_1 + " - " + record_list[6]
             for i in range(7, 32):
                 assay_dict[assay_keys[i - 5]] = record_list[i]
 
@@ -86,7 +87,7 @@ def main():
 
             assay_dict = {}
             assay_dict["rec_index"] = line_idx
-            assay_dict["timepoint"] = timepoint_2 + " - " + record_list[32]
+            assay_dict["Timepoint"] = timepoint_2 + " - " + record_list[32]
             for i in range(33, 58):
                 assay_dict[assay_keys[i - 31]] = record_list[i]
 
@@ -98,10 +99,10 @@ def main():
     # Merge the common keys with the assay data.
     syn_table_df = pd.merge(assay_df, common_keys_df, on="rec_index")
     syn_table_df = syn_table_df.drop("rec_index", axis=1)
-                
+
     # Write out to the Synapse table.
     pec_dcs_table = syn.get(args.synapse_id)
-    table_out = syn.store(Table(pec_dcs_table.id, syn_table_df))
+    _ = syn.store(Table(pec_dcs_table.id, syn_table_df))
 
 
 if __name__ == "__main__":
