@@ -55,9 +55,9 @@ def main():
     syn = synapseclient.Synapse()
     syn.login(silent=True)
 
-    # Need to read in the file line by line so that we can parse the header,
-    # as the number of assays may change. Excel surrounds text fields that
-    # contain commas in double quotes, so get rid of them if necessary.
+    # Need to read in the file line by line so that we can get the timepoints
+    # from the header. Excel surrounds text fields that contain commas in
+    # double quotes, so get rid of the quotes if necessary.
     for line_idx, dcs_line in enumerate(args.dcs_file):
         dcs_line = dcs_line.replace('"', '')
         record_list = dcs_line.split("\t")
