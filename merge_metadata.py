@@ -70,7 +70,7 @@ def main():
 
     pec_annot_df = pd.merge(ind_biosamp_df, assay_df, on="specimenID")
 
-    # Convert NaN to None.
+    # Convert NaN to a blank string.
     pec_annot_df = pec_annot_df.replace({pd.np.nan: ""})
 
     # Get rid of any extraneous columns that were added by the site.
@@ -98,7 +98,7 @@ def main():
                     syn_dict["specimenID"] = character_id_var.join(syn_dict["specimenID"])
 
                 syn_file_df = syn_file_df.append(syn_dict, ignore_index=True)
-                syn_file_df = syn_file_df.replace({pd.np.nan: None})
+                syn_file_df = syn_file_df.replace({pd.np.nan: ""})
 
     # Merge the synapse files (with the current annotations) with the new
     # annotations from the metadata files.
