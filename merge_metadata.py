@@ -70,8 +70,8 @@ def main():
 
     pec_annot_df = pd.merge(ind_biosamp_df, assay_df, on="specimenID")
 
-    # Convert NaN to None, and then get rid of any keys with values of None
-    pec_annot_df = pec_annot_df.replace({pd.np.nan: None})
+    # Convert NaN to None.
+    pec_annot_df = pec_annot_df.replace({pd.np.nan: ""})
 
     # Get rid of any extraneous columns that were added by the site.
     bad_keys = set(pec_annot_df.keys()).difference(pec_schema_keys)
