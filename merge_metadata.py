@@ -6,7 +6,7 @@ Program: merge_metadata.py
 Purpose: Merge individual, biospecimen, and assay metadata files together and
          use them to annotate data files.
 
-Input parameters: 
+Input parameters:
     individual_file - Full pathname to the individual metadata file
     biospecimen_file - Full pathname to the biospecimen metadata file
     assay_file - Full pathname to the assay metadata file
@@ -22,15 +22,15 @@ Execution: merge_metadata.py <individual metadata file>
 
 import argparse
 import json
+import urllib.request
 import pandas as pd
 import synapseclient
 import synapseutils
-import urllib.request
 
 # Only some of the individual metadata keys will be used for annotating files.
-individual_keys = ["individualID", "ageOfDeath", "primaryDiagnosis", "reportedGender"]
+INDIVIDUAL_KEYS = ["individualID", "ageOfDeath", "primaryDiagnosis", "reportedGender"]
 
-pec_schema_url = "https://raw.githubusercontent.com/cw-dvr8/JSON-validation-schemas/master/validation_schemas/psychENCODE/psychENCODE_schema.json"
+PEC_SCHEMA_URL = "https://raw.githubusercontent.com/cw-dvr8/JSON-validation-schemas/master/validation_schemas/psychENCODE/psychENCODE_schema.json"
 
 def main():
 
@@ -55,12 +55,12 @@ def main():
 
     # Read in the PsychENCODE JSON schema in order to use it to look for
     # non-Sage keys added by the contributor.
-    with urllib.request.urlopen(pec_schema_url) as pec_json_url:
+    with urllib.request.urlopen(PEC_SCHEMA_URL) as pec_json_url:
         pec_schema = json.loads(pec_json_url.read().decode())
 
     pec_schema_keys = pec_schema["properties"].keys()
 
-    individual_df = pd.DataFrame(pd.read_csv(args.individual_file), columns=individual_keys)
+    individual_df = pd.DataFrame(pd.read_csv(args.individual_file), columns=INDIVIDUAL_KEYS)
     biospecimen_df = pd.read_csv(args.biospecimen_file)
     assay_df = pd.read_csv(args.assay_file)
 
@@ -90,13 +90,12 @@ def main():
             # and specimenID need to be character. If neither are in the
             # current annotations, then do not add the file info to the
             # dataframe.
-            if ("individualID" in syn_dict) or (specimenID in syn_dict):
+            if ("individualID" in syn_dict) or ("specimenID" in syn_dict):
+                character_id_var = ""
                 if "individualID" in syn_dict:
-                    individualID = ""
-                    syn_dict["individualID"] = individualID.join(syn_dict["individualID"])
+                    syn_dict["individualID"] = character_id_var.join(syn_dict["individualID"])
                 if "specimenID" in syn_dict:
-                    specimenID = ""
-                    syn_dict["specimenID"] = individualID.join(syn_dict["specimenID"])
+                    syn_dict["specimenID"] = character_id_var.join(syn_dict["specimenID"])
 
                 syn_file_df = syn_file_df.append(syn_dict, ignore_index=True)
                 syn_file_df = syn_file_df.replace({pd.np.nan: None})
