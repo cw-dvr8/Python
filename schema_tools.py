@@ -36,15 +36,15 @@ def convert_bool_to_string(input_value):
     return return_value
 
 
-def convert_number_to_string(input_value):
+def convert_numeric_to_string(input_value):
 
     """
-    Function: convert_number_to_string
+    Function: convert_numeric_to_string
 
     Purpose: Convert a value from the Python numeric representation (float/int)
              into a string representation.
 
-    Arguments: 
+    Arguments:
         input_value - A variable that might contain a Python numeric value
 
     Returns: Either a) a string representation of a numeric value if
@@ -56,8 +56,8 @@ def convert_number_to_string(input_value):
     # inadvertently convert another type. If the Boolean check is not
     # included, it will return a string representation of a Boolean value,
     # i.e. "True"/"False".
-    if ((isinstance(input_value, (float, int))) and
-       (not(isinstance( input_value, bool)))):
+    if ((isinstance(input_value, (float, int)))
+            and (not isinstance(input_value, bool))):
         return_value = str(input_value)
     else:
         return_value = input_value
@@ -91,12 +91,14 @@ def convert_string_to_numeric(input_value):
     """
     Function: convert_string_to_numeric
 
-    Purpose: Convert a string numeric value into the appropriate numeric typ (either
-             integer or float).
+    Purpose: Convert a string numeric value into the appropriate numeric type
+             (either integer or float).
 
-    Arguments: A variable that might contain a string representation of a number.
+    Arguments: A variable that might contain a string representation of a
+               numeric value.
 
-    Returns: Either a) a number, or b) the original value if the string was not a number.
+    Returns: Either a) a numeric value, or b) the original value if the string
+             was not numeric.
     """
     if input_value.isnumeric():
         return_value = int(input_value)
@@ -120,7 +122,7 @@ def convert_from_other(data_row, val_schema, func_to_run):
     reference is defined as a string and a value is read as Boolean (True/
     False) or numeric (float/int), it will fail validation.
 
-    Input parameters: 
+    Input parameters:
         data_row - a dictionary representing a single row of data
         val_schema - the JSON validation schema representing the structure
                      of the data row.
@@ -141,9 +143,9 @@ def convert_from_other(data_row, val_schema, func_to_run):
         # c) the value is not a string but there are no other alternative
         #    types/values for it in the schema
         if ((rec_key not in val_schema["properties"])
-            or (isinstance(data_row[rec_key], str))
-            or ((not(isinstance(data_row[rec_key], str)))
-                and not(any(value_key in schema_val for value_key in VALUES_LIST_KEYWORDS)))):
+                or (isinstance(data_row[rec_key], str))
+                or ((not isinstance(data_row[rec_key], str))
+                    and (not any(value_key in schema_val for value_key in VALUES_LIST_KEYWORDS)))):
             converted_row[rec_key] = data_row[rec_key]
 
         else:
@@ -176,7 +178,7 @@ def convert_string_to_other(data_row, val_schema, type_list, func_to_run):
     therefore fail validation if the string representation is not enumerated
     as a possible value.
 
-    Input parameters: 
+    Input parameters:
         data_row - a dictionary representing a single row of data
         val_schema - the JSON validation schema representing the structure
                      of the data row.
@@ -196,11 +198,12 @@ def convert_string_to_other(data_row, val_schema, type_list, func_to_run):
         # Pass the row through if:
         # a) the key is not in the schema, i.e. the site put extra columns in the file;
         # b) the value is not a string;
-        # c) the value is a string but there are no other alternative types/values for it in the schema
+        # c) the value is a string but there are no other alternative
+        #    types/values for it in the schema
         if ((rec_key not in val_schema["properties"])
-            or (not(isinstance(data_row[rec_key], str)))
-            or ((isinstance(data_row[rec_key], str))
-                 and not(any(value_key in schema_val for value_key in VALUES_LIST_KEYWORDS)))):
+                or (not isinstance(data_row[rec_key], str))
+                or ((isinstance(data_row[rec_key], str))
+                    and (not any(value_key in schema_val for value_key in VALUES_LIST_KEYWORDS)))):
             converted_row[rec_key] = data_row[rec_key]
 
         else:
@@ -240,7 +243,6 @@ def get_definitions_values(json_schema):
     """
     import pandas as pd
 
-    values_list_keys = VALUES_LIST_KEYWORDS
     definitions_columns = ["key", "type", "description", "required", "maximumSize"]
     definitions_df = pd.DataFrame(columns=definitions_columns)
     values_columns = ["key", "value", "valueDescription", "source"]
@@ -316,8 +318,6 @@ def get_schema_properties(json_schema):
 
     import collections
 
-    values_list_keys = VALUES_LIST_KEYWORDS
-
     definitions_dict = collections.defaultdict(dict)
     definitions_keys = ["type", "description", "required", "maximumSize"]
     values_dict = collections.defaultdict(list)
@@ -347,8 +347,8 @@ def get_schema_properties(json_schema):
                                                 "valueDescription": "",
                                                 "source": ""})
 
-            elif any([value_key in schema_values for value_key in values_list_keys]):
-                vkey = list(set(values_list_keys).intersection(schema_values))[0]
+            elif any([value_key in schema_values for value_key in VALUES_LIST_KEYWORDS]):
+                vkey = list(set(VALUES_LIST_KEYWORDS).intersection(schema_values))[0]
                 for value_row in schema_values[vkey]:
                     key_values_dict = dict.fromkeys(values_keys)
 
@@ -410,6 +410,20 @@ def validation_errors(schema_errors, **kwargs):
     Purpose: Create an output error message for errors found using a
              jsonschema validator
 
+    If the issue is a violation of the object properties, e.g. a type
+    different than what has been defined or a value that is not in the
+    enumerated list of allowed values, the first value in the
+    relative_schema_path deque (0) is going to be "properties" and the second
+    value is going to be the name of the object in error. This is useful to
+    have because the error message will print the violation but not the object
+    causing it.
+
+    If the problem is a relational issue (i.e. an object that is conditionally
+    required based on the value of other objects is  missing), the error
+    message will contain the name of the object. The relative_schema_path deque
+    will contain the constraint that was violated, but nothing useful for
+    identifying the object, so only the error message is pertinent.
+
     Arguments: The deque output of the jsonschema validator
                Any text to be prepended to the error string
 
@@ -423,20 +437,6 @@ def validation_errors(schema_errors, **kwargs):
         prepend_string += in_string
 
     for error in schema_errors:
-        # If the issue is a violation of the object properties, e.g. a
-        # type different than what has been defined or a value that is not in
-        # the enumerated list of allowed values, the first value in the
-        # relative_schema_path deque (0) is going to be "properties" and the
-        # second value is going to be the name of the object in error. This is
-        # useful to have because the error message will print the violation but
-        # not the object causing it.
-        #
-        # If the problem is a relational issue (i.e. an object that is
-        # conditionally required based on the value of other objects is 
-        # missing), the error message will contain the name of the object.
-        # The relative_schema_path deque will contain the constraint that was
-        # violated, but nothing useful for identifying the object, so only the
-        # error message is pertinent.
         if error.relative_schema_path[0] == "properties":
             error_string += f"{prepend_string}{error.relative_schema_path[1]}: {error.message}\n"
         else:
