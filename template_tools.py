@@ -7,8 +7,8 @@ Purpose: Functions used by the template generation programs
 
 """
 
-import pandas as pd
 import os
+import pandas as pd
 
 def template_excel(workbook_name, template_df, dictionary_df, values_df):
     """
