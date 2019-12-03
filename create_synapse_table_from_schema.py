@@ -24,66 +24,72 @@ Execution (overwrite table): create_synapse_table_from_schema.py --json_schema_f
 
 import argparse
 import os
+from urllib.parse import urldefrag
 import pandas as pd
-from schema_tools import convert_bool_to_string, get_schema_properties, load_and_deref
 import synapseclient
 from synapseclient import Column, Schema, Table
-from urllib.parse import urldefrag
+import schema_tools
 
 
 def process_schema(json_schema_file):
+    """
+    Function: process_schema
 
-    output_row_keys = ["key", "module", "description", "columnType", "maximumSize", "value", "valueDescription", "source"]
+    Purpose: Load the JSON schema into a dictionary, resolve any remote
+             references, and convert into a Pandas dataframe suitable to use
+             to create Synapse tables.
 
-    table_df = pd.DataFrame()
+    Arguments: JSON schema file reference
+
+    Returns: Pandas dataframe
+    """
+
     ref_module_dict = {}
 
-    ref_location_dict, json_schema = load_and_deref(json_schema_file)
+    ref_location_dict, json_schema = schema_tools.load_and_deref(json_schema_file)
 
     # Derive the name of the annotations module from the reference location.
     for schema_key in ref_location_dict:
-        ref_doc, ref_frag = urldefrag(ref_location_dict[schema_key])
-        ref_path, ref_file = os.path.split(ref_doc)
+        ref_doc, _ = urldefrag(ref_location_dict[schema_key])
+        _, ref_file = os.path.split(ref_doc)
         ref_module_dict[schema_key] = os.path.splitext(ref_file)[0]
 
-    definitions, values = get_schema_properties(json_schema)
+    ref_module_df = pd.DataFrame(list(ref_module_dict.items()),
+                                 columns=["key", "module"])
 
-    # Build a Pandas dataframe out of the schema.
-    for schema_key in definitions:
-        output_row = dict.fromkeys(output_row_keys)
+    defs_df, values_df = schema_tools.get_definitions_values(json_schema)
 
-        # Assemble the output row.
-        output_row["key"] = schema_key
+    # Combine the definitions with the modules, and then with the possible
+    # values.
+    defs_mod_df = pd.merge(defs_df, ref_module_df, how="left", on="key")
+    table_df = pd.merge(defs_mod_df, values_df, how="left", on="key")
 
-        if schema_key in ref_module_dict:
-            output_row["module"] = ref_module_dict[schema_key]
+    # Rename JSON "type" to Synapse "columnType" and drop unnecessary columns.
+    table_df.rename(columns={"type":"columnType"}, inplace=True)
+    table_df.drop("required", axis=1, inplace=True)
 
-        output_row["description"] = definitions[schema_key]["description"]
-        if definitions[schema_key]["type"]:
-            # NUMBER is not a valid type in Synapse.
-            if definitions[schema_key]["type"].upper() == "NUMBER":
-                output_row["columnType"] = "DOUBLE"
-            else:
-                output_row["columnType"] = definitions[schema_key]["type"].upper()
-        output_row["maximumSize"] = definitions[schema_key]["maximumSize"]
+    # Change the column type to upper case. Also, Synapse does not have a
+    # "number" type, so change any occurances of "number" to "double".
+    table_df["columnType"] = table_df["columnType"].str.upper()
+    table_df.loc[table_df["columnType"] == "NUMBER", "columnType"] = "DOUBLE"
 
-        if schema_key in values:
-            for values_row in values[schema_key]:
-                # Run the value through a function that will convert any Python Boolean
-                # values to a lower case string representation. If the value is not a
-                # Python Boolean, the function returns the original value.
-                output_row["value"] = convert_bool_to_string(values_row["value"])
-                output_row["valueDescription"] = values_row["valueDescription"]
-                output_row["source"] = values_row["source"]
-
-                table_df = table_df.append(output_row, ignore_index=True)
-        else:
-            table_df = table_df.append(output_row, ignore_index=True)
-
-    return(table_df)
+    return table_df
 
 
 def process_new_table(args, syn):
+    """
+    Function: process_new_table
+
+    Purpose: Create an annotations table with the specified name under the
+             specified Synapse parent ID using the specified JSON schema. This
+             function is called when the "new_table" option is specified when
+             the program is called.
+
+    Arguments: JSON schema file reference
+               Synapse parent ID
+               Synapse table name
+               A Synapse client object
+    """
 
     # Define column names for the synapse table.
     dcc_column_names = [
@@ -99,11 +105,24 @@ def process_new_table(args, syn):
     syn_table_df = process_schema(args.json_schema_file)
 
     # Build and populate the Synapse table.
-    table_schema = Schema(name=args.synapse_table_name, columns=dcc_column_names, parent=args.parent_synapse_id)
+    table_schema = Schema(name=args.synapse_table_name,
+                          columns=dcc_column_names,
+                          parent=args.parent_synapse_id)
     dcc_table = syn.store(Table(table_schema, syn_table_df))
 
 
 def process_overwrite_table(args, syn):
+    """
+    Function: process_overwrite_table
+
+    Purpose: Overwrite the specified annotations table with data contained in
+             the specified JSON schema. This function is called when the
+             "overwrite_table" option is specified when the program is called.
+
+    Arguments: JSON schema file reference
+               Synapse ID of the table to be overwritten
+               A Synapse client object
+    """
 
     syn_table_df = process_schema(args.json_schema_file)
 
