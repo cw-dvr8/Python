@@ -44,16 +44,17 @@ def main():
 
     # Attempt to read the file to be validated as a JSON file.
     try:
-        json_file_dict = json.load(args.validation_obj_file)
-        data_dict_list.append(json_file_dict)
+        data_dict_list.append(json.load(args.validation_obj_file))
 
         # The first record in a JSON file will be 1. Note that records in a
         # JSON file can span multiple lines.
         first_record = 1
 
-    except:
+    except json.JSONDecodeError:
         # If the attempt to read the file as JSON fails, attemp to read it as
-        # a csv.
+        # a csv. json.load apparently positions the file position to the end
+        # of the file so it is necessary to reset the file position to the
+        # beginning in order to attempt to read it as a csv.
         args.validation_obj_file.seek(0)
         data_file_df = pd.read_csv(args.validation_obj_file)
 
