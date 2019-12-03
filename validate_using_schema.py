@@ -37,7 +37,6 @@ def main():
     row_error = ""
     validation_errors = ""
     data_dict_list = []
-    first_data_row = None
 
     # Load the JSON schema and create a validator..
     _, json_schema = schema_tools.load_and_deref(args.json_schema_file)
@@ -48,24 +47,25 @@ def main():
         json_file_dict = json.load(args.validation_obj_file)
         data_dict_list.append(json_file_dict)
 
+        # The first record in a JSON file will be 1. Note that records in a
+        # JSON file can span multiple lines.
+        first_record = 1
+
     except:
         # If the attempt to read the file as JSON fails, attemp to read it as
         # a csv.
-        try:
-            args.validation_obj_file.seek(0)
-            data_file_df = pd.read_csv(args.validation_obj_file)
+        args.validation_obj_file.seek(0)
+        data_file_df = pd.read_csv(args.validation_obj_file)
 
-            # Pandas reads in empty fields as nan. Replace nan with None.
-            data_file_df = data_file_df.replace({pd.np.nan: None})
+        # Pandas reads in empty fields as nan. Replace nan with None.
+        data_file_df = data_file_df.replace({pd.np.nan: None})
 
-            data_dict_list = data_file_df.to_dict(orient="records")
+        data_dict_list = data_file_df.to_dict(orient="records")
 
-            # The first line of a manifest file (csv) that contains actual data
-            # will be row 2 (header is line 1).
-            first_data_row = 2
-
-        except:
-            raise Exception ("Problem with file to be validated") from None
+        # The first line of a manifest file (csv) that contains actual data
+        # will be row 2 (header is line 1). Records in csv files will not span
+        # multiple lines.
+        first_record = 2
 
     for line_number, data_record in enumerate(data_dict_list):
 
@@ -77,23 +77,20 @@ def main():
         # definitions, so convert Booleans to strings if the key is also
         # allowed to contain string values.
         converted_clean_record = schema_tools.convert_from_other(clean_record,
-                                          json_schema,
-                                          schema_tools.convert_bool_to_string)
+                                           json_schema,
+                                           schema_tools.convert_bool_to_string)
 
         schema_errors = schema_validator.iter_errors(converted_clean_record)
 
-        if first_data_row:
-            line_number = "Line " + str(first_data_row + line_number) + ": "
-            row_error = schema_tools.validation_errors(schema_errors,
-                                                   line_prepend=line_number)
-        else:
-            row_error = schema_tools.validation_errors(schema_errors)
+        record_number = "Record " + str(first_record + line_number) + ": "
+        row_error = schema_tools.validation_errors(schema_errors,
+                                                   line_prepend=record_number)
 
         if row_error:
             validation_errors += row_error
 
     print(validation_errors)
-    
+
 
 if __name__ == "__main__":
     main()
