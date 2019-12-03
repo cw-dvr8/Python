@@ -36,7 +36,7 @@ def main():
     parser.add_argument("output_file", type=str,
                         help="Full pathname for the output file")
     parser.add_argument("type_of_output", type=str,
-                        help="Type of output (csv or excel")
+                        help="Type of output (csv or excel)")
 
     args = parser.parse_args()
 
