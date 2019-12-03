@@ -24,7 +24,7 @@ Execution: create_templates_from_schema.py <JSON schema> <output file>
 """
 
 import argparse
-import pandas as pd 
+import pandas as pd
 import schema_tools
 import template_tools
 
