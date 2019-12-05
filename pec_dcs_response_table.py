@@ -11,6 +11,12 @@ Purpose: Uses a downloaded tab-delimited text file of the PsychENCODE Data
          A tab delimited text file is necessary to prevent problems with text
          fields that contain commas.
 
+         This program was originally written to append records to the table
+         with the assumption that the response data would be iterative, i.e.
+         only new responses would be provided to the program. The response data
+         is instead cumulative, so it was changed to overwrite the table with
+         the complete dataset instead.
+
 Input parameters:
     dcs_file - Full pathname to the DCS text file
     synapse_id - Synapse ID for the table to write to
@@ -102,6 +108,8 @@ def main():
 
     # Write out to the Synapse table.
     pec_dcs_table = syn.get(args.synapse_id)
+    results = syn.tableQuery(f"select * from {pec_dcs_table.id}")
+    _ = syn.delete(results)
     _ = syn.store(Table(pec_dcs_table.id, syn_table_df))
 
 
