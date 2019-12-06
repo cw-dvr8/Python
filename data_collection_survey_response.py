@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Program: PEC_DCS_response_table.py
+Program: data_collection_survey_response.py
 
 Purpose: Uses a downloaded tab-delimited text file of the PsychENCODE Data
          Contribution Survey
@@ -23,7 +23,7 @@ Input parameters:
 
 Outputs: Synapse DCS Response table
 
-Execution: PEC_DCS_response_table.py <text file> <Synapse ID>
+Execution: data_collection_survey_response.py <text file> <Synapse ID>
 
 """
 
