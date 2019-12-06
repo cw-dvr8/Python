@@ -35,12 +35,12 @@ PEC_SCHEMA_URL = "https://raw.githubusercontent.com/cw-dvr8/JSON-validation-sche
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("individual_file", type=argparse.FileType("r"),
-                        help="Individual metadata file")
-    parser.add_argument("biospecimen_file", type=argparse.FileType("r"),
-                        help="Biospecimen metadata file")
-    parser.add_argument("assay_file", type=argparse.FileType("r"),
-                        help="Assay metadata file")
+    parser.add_argument("individual_synapse_id", type=str,
+                        help="Synapse ID for the individual metadata file")
+    parser.add_argument("biospecimen_synapse_id", type=str,
+                        help="Synapse ID for the biospecimen metadata file")
+    parser.add_argument("assay_synapse_id", type=str,
+                        help="Synapse ID for the assay metadata file")
     parser.add_argument("parent_synapse_id", type=str,
                         help="Parent Synapse ID containing the files to be annotated")
 
@@ -60,9 +60,17 @@ def main():
 
     pec_schema_keys = pec_schema["properties"].keys()
 
-    individual_df = pd.DataFrame(pd.read_csv(args.individual_file), columns=INDIVIDUAL_KEYS)
-    biospecimen_df = pd.read_csv(args.biospecimen_file)
-    assay_df = pd.read_csv(args.assay_file)
+    # Download the metadata files from Synapse and read their contents into
+    # dataframes.
+    individual_file = open(syn.get(args.individual_synapse_id).path)
+    individual_df = pd.DataFrame(pd.read_csv(individual_file),
+                                 columns=INDIVIDUAL_KEYS)
+
+    biospecimen_file = open(syn.get(args.biospecimen_synapse_id).path)
+    biospecimen_df = pd.read_csv(biospecimen_file)
+
+    assay_file = open(syn.get(args.assay_synapse_id).path)
+    assay_df = pd.read_csv(assay_file)
 
     # The individual and biospecimen files both contain the individual ID.
     # The biospecimen and assay files both contain a specimen ID.
@@ -98,7 +106,8 @@ def main():
                     syn_dict["specimenID"] = character_id_var.join(syn_dict["specimenID"])
 
                 syn_file_df = syn_file_df.append(syn_dict, ignore_index=True)
-                syn_file_df = syn_file_df.replace({pd.np.nan: ""})
+
+    syn_file_df = syn_file_df.replace({pd.np.nan: ""})
 
     # Merge the synapse files (with the current annotations) with the new
     # annotations from the metadata files.
