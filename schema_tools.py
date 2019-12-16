@@ -9,6 +9,7 @@ Purpose: Common functions used by validation or template generation programs.
 
 VALUES_LIST_KEYWORDS = ["anyOf", "enum"]
 
+
 def convert_bool_to_string(input_value):
 
     """
@@ -403,6 +404,35 @@ def load_and_deref(schema_file_handle):
     return(ref_location_dict, json_schema)
 
 
+def set_comma_val(element_number, object_length):
+    """
+    Function: set_comma_val
+
+    Purpose: Given the enumerated value of an element in an iterable object and
+             the length of the object, determine whether the element is the
+             last one in the object. If not, return a comma.
+
+             Note that enumerated values start at 0, so it is necessary to add
+             1 to them in order to compare them to the length.
+
+             This function is used by other functions that create JSON schemas
+             from Python dictionaries.
+
+    Arguments: the number of the current element in the object
+               the length of the object
+
+    Returns: - a comma, if the element is not the last one in the object
+             - a character null value if the element is the last one in the
+               object.
+    """
+    if (element_number + 1) < object_length:
+        comma_val = ","
+    else:
+        comma_val = ""
+
+    return comma_val
+
+
 def validation_errors(schema_errors, **kwargs):
     """
     Function: validation_errors
@@ -443,3 +473,84 @@ def validation_errors(schema_errors, **kwargs):
             error_string += f"{prepend_string}{error.message}\n"
 
     return error_string
+
+
+def walk_schema(schema_obj, schema_output, first_call):
+    """
+    Function: walk_schema
+
+    Purpose: Recursively walk through the schema dictionary and construct
+             output to be written to a JSON schema file. The recursion is
+             necessary because a schema dictionary can have varying levels of
+             nested dictionaries and lists.
+
+             There are operations that only get performed the first time the
+             function is called, so the first_call parameter should always be
+             set to True when called in open code.
+
+    Arguments: - The Python dictionary representation of a JSON schema
+               - A character string for the output that gets appended to
+               - A Boolean value designating whether the current iteration is
+                 the first call to the function. It is internally set to False
+                 in all subsequent calls.
+
+    Returns: A character string of output
+    """
+    # The top level of any structure fed into this function is a dictionary,
+    # so start the output structure with an opening curly brace.
+    schema_output += "{\n"
+
+    schema_obj_len = len(schema_obj)
+    for key_number, (obj_key, obj_val) in enumerate(schema_obj.items()):
+
+        # All of the elements of the dictionary, list, etc. are separated by
+        # commas. However, the last element has no need for a comma.
+        obj_comma = set_comma_val(key_number, schema_obj_len)
+
+        if isinstance(obj_val, dict):
+            schema_output += f"\"{obj_key}\" : "
+            schema_output = walk_schema(obj_val, schema_output, False)
+            schema_output += f"}}{obj_comma}\n"
+
+        elif isinstance(obj_val, list):
+            list_len = len(obj_val)
+            for element_number, element_val in enumerate(obj_val):
+                element_comma = set_comma_val(element_number, list_len)
+
+                if element_number == 0:
+                    schema_output += f"\"{obj_key}\" : [\n"
+
+                # Lists in the data structure are either going to be lists of
+                # dictionaries, e.g. in enum statements or if statements, or
+                # lists of items, e.g. in required statements.
+                if isinstance(element_val, dict):
+                    schema_output = walk_schema(element_val, schema_output, False)
+                    schema_output += f"}}{element_comma}\n"
+
+                    if (element_number + 1) == list_len:
+                        schema_output += f"]{obj_comma}\n"
+
+                else:
+                    schema_output += f"\"{element_val}\"{element_comma}\n"
+
+                    if (element_number + 1) == list_len:
+                        schema_output += f"]{obj_comma}\n"
+
+        else:
+            schema_output += f"\"{obj_key}\" : "
+
+            # Do not put quotes around numeric values (integers or floats).
+            # Since Boolean values are not enumerated in the reference
+            # definitions unless they are not true Boolean values, they should
+            # be quoted.
+            if isinstance(obj_val, (str, bool)):
+                schema_output += f"\"{obj_val}\"{obj_comma}\n"
+            else:
+                schema_output += f"{obj_val}{obj_comma}\n"
+
+    # If we are exiting the initial call to the function, close the final
+    # iteration.
+    if first_call:
+        schema_output += "}\n"
+
+    return schema_output
