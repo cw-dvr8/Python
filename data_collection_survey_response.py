@@ -18,37 +18,37 @@ Purpose: Uses a downloaded tab-delimited text file of the PsychENCODE Data
          the complete dataset instead.
 
 Input parameters:
-    dcs_file - Full pathname to the DCS text file
-    synapse_id - Synapse ID for the table to write to
+    dcs_synapse_id - Synapse ID for the survey response text file
+    table_synapse_id - Synapse ID for the table to write to
 
 Outputs: Synapse DCS Response table
 
-Execution: data_collection_survey_response.py <text file> <Synapse ID>
+Execution: data_collection_survey_response.py <text file Synapse ID>
+                                              <Synapse ID>
 
 """
 
 import argparse
 import pandas as pd
 import synapseclient
-from synapseclient import Table
+from synapseclient import Activity, Table
 
 def main():
 
-    common_keys = ["rec_index", "Grant", "Contact PI", "Institution",
-                   "Data Liaison", "Data Liaison Email", "Protein Targets"]
-    assay_keys = ["rec_index", "Timepoint", "Species", "Individual ID Source",
-                  "Life Stage", "Primary Diagnosis", "GWAS", "wholeGenomeSeq",
-                  "rnaSeq", "ISOSeq", "ChIPSeq", "HiChIP", "STARRSeq",
-                  "ATACSeq", "HiC", "CaptureC", "WGBS", "NOMeSeq", "Ribo-Seq",
-                  "proteomics", "Assay Other", "Assay Other Describe",
-                  "Specimen Other Describe", "Brain Regions",
-                  "Sorted Cell Types", "Number Unique Donors",
-                  "Number Specimens", "Protein Targets"]
+    common_keys = ["rec_index", "grant", "contact PI", "Institution",
+                   "Data Liaison", "Data Liaison Email", "assayTarget"]
+    assay_keys = ["rec_index", "Timepoint", "species", "individualIdSource",
+                  "lifeStage", "diagnosis", "GWAS", "wholeGenomeSeq", "rnaSeq",
+                  "ISOSeq", "ChIPSeq", "HiChIP", "STARRSeq", "ATACSeq", "Hi-C",
+                  "CaptureC", "WGBS", "NOMeSeq", "Ribo-Seq", "proteomics",
+                  "Assay Other", "Assay Other Describe",
+                  "Specimen Other Describe", "tissue", "cellType",
+                  "uniqueIndividuals", "uniqueSamples"]
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("dcs_file", type=argparse.FileType("r"),
-                        help="Data Contribution Survey csv file")
-    parser.add_argument("synapse_id", type=str,
+    parser.add_argument("dcs_synapse_id", type=str,
+                        help="Data Contribution Survey text file Synapse ID")
+    parser.add_argument("table_synapse_id", type=str,
                         help="Synapse Table ID")
 
     args = parser.parse_args()
@@ -64,7 +64,10 @@ def main():
     # Need to read in the file line by line so that we can get the timepoints
     # from the header. Excel surrounds text fields that contain commas in
     # double quotes, so get rid of the quotes if necessary.
-    for line_idx, dcs_line in enumerate(args.dcs_file):
+    dcs_entity = syn.get(args.dcs_synapse_id)
+    dcs_file = open(dcs_entity.path)
+
+    for line_idx, dcs_line in enumerate(dcs_file):
         dcs_line = dcs_line.replace('"', '')
         record_list = dcs_line.split("\t")
 
@@ -77,7 +80,7 @@ def main():
         else:
             common_dict = {}
             common_dict["rec_index"] = line_idx
-            common_dict["Protein Targets"] = record_list[58]
+            common_dict["assayTarget"] = record_list[58]
             for i in range(1, 6):
                 common_dict[common_keys[i]] = record_list[i]
 
@@ -107,10 +110,15 @@ def main():
     syn_table_df = syn_table_df.drop("rec_index", axis=1)
 
     # Write out to the Synapse table.
-    pec_dcs_table = syn.get(args.synapse_id)
+    pec_dcs_table = syn.get(args.table_synapse_id)
     results = syn.tableQuery(f"select * from {pec_dcs_table.id}")
     _ = syn.delete(results)
     _ = syn.store(Table(pec_dcs_table.id, syn_table_df))
+
+    table_act = Activity(name="transforming",
+                         description="Generate table from tsv file",
+                         used=[args.dcs_synapse_id])
+    _ = syn.setProvenance(pec_dcs_table.id, table_act)
 
 
 if __name__ == "__main__":
