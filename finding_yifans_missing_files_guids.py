@@ -42,4 +42,4 @@ with open("/home/cmolitor/temp/found_files_2966.csv", "w") as out_found_file:
 not_found_df = all_files_df.loc[all_files_df["_merge"] == "left_only"]
 
 with open("/home/cmolitor/temp/not_found_files_2966.csv", "w") as out_not_found_file:
-    found_file_df.to_csv(out_not_found_file, index=False)
+    not_found_df.to_csv(out_not_found_file, index=False)
