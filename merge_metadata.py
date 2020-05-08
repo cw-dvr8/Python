@@ -7,16 +7,16 @@ Purpose: Merge individual, biospecimen, and assay metadata files together and
          use them to annotate data files.
 
 Input parameters:
-    individual_file - Full pathname to the individual metadata file
-    biospecimen_file - Full pathname to the biospecimen metadata file
-    assay_file - Full pathname to the assay metadata file
+    individual_synapse_id - Synapse ID for the individual metadata file
+    biospecimen_synapse_id - Synapse ID for the biospecimen metadata file
+    assay_synapse_id - Synapse ID for the assay metadata file
     parent_synapse_id - Parent Synapse ID containing the files to be annotated
 
 Outputs: File annotations on Synapse
 
-Execution: merge_metadata.py <individual metadata file>
-               <biospecimen metadata file> <assay metadata file>
-               <Synapse parent ID>
+Execution: merge_metadata.py <individual metadata file Synapse ID>
+               <biospecimen metadata file Synapse ID>
+               <assay metadata file Synapse ID> <Synapse parent ID>
 
 """
 
@@ -28,9 +28,9 @@ import synapseclient
 import synapseutils
 
 # Only some of the individual metadata keys will be used for annotating files.
-INDIVIDUAL_KEYS = ["individualID", "ageOfDeath", "primaryDiagnosis", "reportedGender"]
+INDIVIDUAL_KEYS = ["individualID", "individualIdSource", "primaryDiagnosis", "reportedGender"]
 
-PEC_SCHEMA_URL = "https://raw.githubusercontent.com/cw-dvr8/JSON-validation-schemas/master/validation_schemas/psychENCODE/psychENCODE_schema.json"
+PEC_SCHEMA_URL = "https://raw.githubusercontent.com/Sage-Bionetworks/sysbioDCCjsonschemas/master/PsychENCODE/psychENCODE_schema.json"
 
 def main():
 
@@ -74,9 +74,11 @@ def main():
 
     # The individual and biospecimen files both contain the individual ID.
     # The biospecimen and assay files both contain a specimen ID.
-    ind_biosamp_df = pd.merge(individual_df, biospecimen_df, on="individualID")
+    ind_biosamp_df = pd.merge(individual_df, biospecimen_df, how="inner",
+                              on="individualID")
 
-    pec_annot_df = pd.merge(ind_biosamp_df, assay_df, on="specimenID")
+    pec_annot_df = pd.merge(ind_biosamp_df, assay_df, how="inner",
+                            on="specimenID")
 
     # Convert NaN to a blank string.
     pec_annot_df = pec_annot_df.replace({pd.np.nan: ""})
@@ -95,7 +97,7 @@ def main():
             syn_dict.update(syn.getAnnotations(syn_id))
 
             # getAnnotations returns the annotations as lists, but individualID
-            # and specimenID need to be character. If neither are in the
+            # and specimenID need to be strings. If neither are in the
             # current annotations, then do not add the file info to the
             # dataframe.
             if ("individualID" in syn_dict) or ("specimenID" in syn_dict):
@@ -107,13 +109,13 @@ def main():
 
                 syn_file_df = syn_file_df.append(syn_dict, ignore_index=True)
 
+    # Replace NaN values with missing.
     syn_file_df = syn_file_df.replace({pd.np.nan: ""})
 
     # Merge the synapse files (with the current annotations) with the new
     # annotations from the metadata files.
     annotation_df = pd.merge(pec_annot_df, syn_file_df, how="inner",
-                             left_on=["individualID", "specimenID"],
-                             right_on=["individualID", "specimenID"])
+                             on=["individualID", "specimenID"])
 
     # Create a list of the annotations dictionaries, and then use it to
     # create a dictionary with the Synapse id as a key.
