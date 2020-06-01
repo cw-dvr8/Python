@@ -35,8 +35,11 @@ def main():
 
     if "displayName" in user_record["userProfile"].keys():
         name_value = user_record["userProfile"]["displayName"]
-    else:
+    elif (("firstName" in user_record["userProfile"].keys()) and
+         ("lastName" in user_record["userProfile"].keys())):
         name_value = f"{user_record['userProfile']['firstName']} {user_record['userProfile']['lastName']}"
+    else:
+        name_value = user_record["userProfile"]["userName"]
 
     if user_record["isCertified"]:
         print(f"{name_value} is a certified user\n")
