@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Program: merge_metadata.py
+Program: annotate_with_metadata.py
 
 Purpose: Merge individual, biospecimen, and assay metadata files together and
          use them to annotate data files.
@@ -14,7 +14,7 @@ Input parameters:
 
 Outputs: File annotations on Synapse
 
-Execution: merge_metadata.py <individual metadata file Synapse ID>
+Execution: annotate_with_metadata.py <individual metadata file Synapse ID>
                <biospecimen metadata file Synapse ID>
                <assay metadata file Synapse ID> <Synapse parent ID>
 
