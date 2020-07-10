@@ -81,7 +81,7 @@ def main():
                             on="specimenID")
 
     # Convert NaN to a blank string.
-    pec_annot_df = pec_annot_df.replace({pd.np.nan: ""})
+    pec_annot_df.fillna("", inplace=True)
 
     # Get rid of any extraneous columns that were added by the site.
     bad_keys = set(pec_annot_df.keys()).difference(pec_schema_keys)
@@ -110,7 +110,7 @@ def main():
                 syn_file_df = syn_file_df.append(syn_dict, ignore_index=True)
 
     # Replace NaN values with missing.
-    syn_file_df = syn_file_df.replace({pd.np.nan: ""})
+    syn_file_df.fillna("", inplace=True)
 
     # Merge the synapse files (with the current annotations) with the new
     # annotations from the metadata files.
