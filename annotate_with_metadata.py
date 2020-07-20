@@ -28,7 +28,8 @@ import synapseclient
 import synapseutils
 
 # Only some of the individual metadata keys will be used for annotating files.
-INDIVIDUAL_KEYS = ["individualID", "individualIdSource", "primaryDiagnosis", "reportedGender"]
+# INDIVIDUAL_KEYS = ["individualID", "individualIdSource", "primaryDiagnosis", "reportedGender"]
+INDIVIDUAL_KEYS = ["individualID", "individualIdSource"]
 
 PEC_SCHEMA_URL = "https://raw.githubusercontent.com/Sage-Bionetworks/sysbioDCCjsonschemas/master/PsychENCODE/psychENCODE_schema.json"
 
@@ -62,15 +63,12 @@ def main():
 
     # Download the metadata files from Synapse and read their contents into
     # dataframes.
-    individual_file = open(syn.get(args.individual_synapse_id).path)
-    individual_df = pd.DataFrame(pd.read_csv(individual_file),
-                                 columns=INDIVIDUAL_KEYS)
+    individual_df = pd.read_csv(open(syn.get(args.individual_synapse_id).path))
+    individual_df = individual_df[INDIVIDUAL_KEYS]
 
-    biospecimen_file = open(syn.get(args.biospecimen_synapse_id).path)
-    biospecimen_df = pd.read_csv(biospecimen_file)
+    biospecimen_df = pd.read_csv(open(syn.get(args.biospecimen_synapse_id).path))
 
-    assay_file = open(syn.get(args.assay_synapse_id).path)
-    assay_df = pd.read_csv(assay_file)
+    assay_df = pd.read_csv(open(syn.get(args.assay_synapse_id).path))
 
     # The individual and biospecimen files both contain the individual ID.
     # The biospecimen and assay files both contain a specimen ID.
@@ -106,6 +104,8 @@ def main():
                     syn_dict["individualID"] = character_id_var.join(syn_dict["individualID"])
                 if "specimenID" in syn_dict:
                     syn_dict["specimenID"] = character_id_var.join(syn_dict["specimenID"])
+                if "assay" in syn_dict:
+                    syn_dict["assay"] = character_id_var.join(syn_dict["assay"])
 
                 syn_file_df = syn_file_df.append(syn_dict, ignore_index=True)
 
@@ -115,7 +115,7 @@ def main():
     # Merge the synapse files (with the current annotations) with the new
     # annotations from the metadata files.
     annotation_df = pd.merge(pec_annot_df, syn_file_df, how="inner",
-                             on=["individualID", "specimenID"])
+                             on=["individualID", "specimenID", "assay"])
 
     # Create a list of the annotations dictionaries, and then use it to
     # create a dictionary with the Synapse id as a key.
