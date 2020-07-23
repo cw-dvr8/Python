@@ -16,6 +16,11 @@ Storage space for my Sage python code that may or may not be in production.
 #### Pandas - keep specified columns
     df = df[["column1", "column2", etc.]]
 
+#### Pandas - merge data frames (outer) with indicator
+    new_df = pd.merge(df1, df2, how="outer",
+                      left_on="df1_column", right_on="df2_column",
+                      indicator=True)
+
 #### Pandas - read_csv with tabs as delimiters
     df = pd.read_csv(filehandle, sep="\t")
 
