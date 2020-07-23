@@ -22,6 +22,9 @@ Storage space for my Sage python code that may or may not be in production.
 #### Pandas - rename columns
     df = df.rename(columns={"OldColumnName1": "NewColumnName1", "OldColumnName2": "NewColumnName2", etc.})
 
+#### Pandas - replace NaN with empty string
+    df.fillna("", inplace=True)
+
 #### Synapse login
     syn = synapseclient.Synapse()
     syn.login(silent=True)
