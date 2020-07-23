@@ -26,5 +26,6 @@ Storage space for my Sage python code that may or may not be in production.
     df.fillna("", inplace=True)
 
 #### Synapse login
+    import synapseclient
     syn = synapseclient.Synapse()
     syn.login(silent=True)
