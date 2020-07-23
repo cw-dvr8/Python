@@ -31,8 +31,8 @@ Storage space for my Sage python code that may or may not be in production.
     df.fillna("", inplace=True)
 
 #### Pandas - write to an output file
-    df.to_csv(filehandle)
-    df.to_csv(filehandle, sep="\t")
+    df.to_csv(filehandle, index=False)
+    df.to_csv(filehandle, sep="\t", index=False)
 
 #### Synapse login
     import synapseclient
