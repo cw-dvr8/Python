@@ -30,6 +30,10 @@ Storage space for my Sage python code that may or may not be in production.
 #### Pandas - replace NaN with empty string
     df.fillna("", inplace=True)
 
+#### Pandas - write to an output file
+    df.to_csv(filehandle)
+    df.to_csv(filehandle, sep="\t")
+
 #### Synapse login
     import synapseclient
     syn = synapseclient.Synapse()
