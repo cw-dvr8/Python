@@ -34,6 +34,10 @@ Storage space for my Sage python code that may or may not be in production.
     df.to_csv(filehandle, index=False)
     df.to_csv(filehandle, sep="\t", index=False)
 
+#### Pandas - write to standard output
+    import sys
+    df.to_csv(sys.stdout, index=False)
+
 #### Synapse login
     import synapseclient
     syn = synapseclient.Synapse()
