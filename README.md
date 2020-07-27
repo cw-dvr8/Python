@@ -7,6 +7,9 @@ Storage space for my Sage python code that may or may not be in production.
 #### Pandas - append data frames
     df1 = df1.append(df2, ignore_index=True, sort=False)
 
+#### Pandas - create new column based on current column values
+    df.loc[df["current_column"] == "CurrentColumnValue", "new_column"] = "NewColumnValue"
+
 #### Pandas - drop columns
     df.drop(["column1", "column2", etc.], axis=1, inplace=True)
 
