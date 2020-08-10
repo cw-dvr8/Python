@@ -4,14 +4,33 @@ Storage space for my Sage python code that may or may not be in production.
 
 ## Syntax cheat-sheet
 
+#### Convert ISO 8601 datetime string into a datetime object
+    import dateutil.parser
+    new_date = dateutil.parser.parse(string_date)
+
+#### Get current date
+    import datetime
+    current_date = datetime.datetime.today()
+    
+#### Get difference in days between two datetime objects
+    import datetime
+    date_diff = dt_object2 - dt_object1
+    date_diff.days
+
 #### Pandas - append data frames
     df1 = df1.append(df2, ignore_index=True, sort=False)
+
+#### Pandas - create new column based on current column values
+    df.loc[df["current_column"] == "CurrentColumnValue", "new_column"] = "NewColumnValue"
 
 #### Pandas - drop columns
     df.drop(["column1", "column2", etc.], axis=1, inplace=True)
 
 #### Pandas - drop NaN
     df.dropna(axis=0, subset=["ColumnName"], inplace=True)
+
+#### Pandas - initialize empty data frame with column names
+    df = pd.DataFrame(columns=["column1", "column2", "column3", etc.])
 
 #### Pandas - keep specified columns
     df = df[["column1", "column2", etc.]]
