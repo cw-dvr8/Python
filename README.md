@@ -65,7 +65,7 @@ Storage space for my Sage python code that may or may not be in production.
 #### Synapse walk a Synapse folder structure to get file SynIDs
     Synapse login (see above)
     import synapseutils
-    syn_contents = synapseutils.walk(syn, args.folder_syn_id)
+    syn_contents = synapseutils.walk(syn, folder_syn_id)
     for __, __, filelist in syn_contents:
         if len(filelist) > 0:
             for __, syn_id in filelist:
