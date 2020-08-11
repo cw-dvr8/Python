@@ -387,7 +387,13 @@ def load_and_deref(schema_file_handle):
     # so that the $refs can point to different locations. I formerly had to pass in
     # a reference path when I was using jsonref, so all of the modules accessed by
     # the $ref statements had to live in the same location.
-    json_schema = json.load(schema_file_handle)
+    #
+    # Try to load the schema from a file. If it throws an AttributeError, try to
+    # read it as a string (i.e. coming from an opened URL).
+    try:
+        json_schema = json.load(schema_file_handle)
+    except AttributeError:
+        json_schema = json.loads(schema_file_handle)
 
     # Create a reference resolver from the schema.
     ref_resolver = jsonschema.RefResolver.from_schema(json_schema)
