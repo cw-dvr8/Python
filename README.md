@@ -61,6 +61,9 @@ Storage space for my Sage python code that may or may not be in production.
 #### Pandas - replace NaN with None
     df2 = df1.where(df1.notnull(), None)
 
+#### Pandas - strip unwanted characters from a column
+    df["column_name"] = df["column_name"].str.strip("unwanted characters")
+
 #### Pandas - write to an output file
     df.to_csv(filehandle, index=False)
     df.to_csv(filehandle, sep="\t", index=False)
