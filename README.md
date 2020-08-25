@@ -20,6 +20,15 @@ Storage space for my Sage python code that may or may not be in production.
 #### Pandas - append data frames
     df1 = df1.append(df2, ignore_index=True, sort=False)
 
+#### Pandas - append dictionary to data frame
+    df = df.append(dictionary, ignore_index=True)
+
+#### Pandas - count the number of occurences of each unique column value
+    unique_values = df.groupby("column_name")["column_name"].count()
+
+#### Pandas - count the total number of unique column values
+    total_unique = df["column_name"].nunique()
+
 #### Pandas - create new column based on current column values
     df.loc[df["current_column"] == "CurrentColumnValue", "new_column"] = "NewColumnValue"
 
