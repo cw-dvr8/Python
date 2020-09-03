@@ -67,7 +67,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where dataType = \'DNA methylation\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["dataType"] = 'chromatinActivity'
+    correction_df["dataType"] = ['chromatinActivity']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -75,7 +75,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where dataType = \'barcodes\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["dataType"] = 'geneExpression'
+    correction_df["dataType"] = ['geneExpression']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -83,7 +83,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where dataType = \'chromatictivity\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["dataType"] = 'chromatinActivity'
+    correction_df["dataType"] = ['chromatinActivity']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -91,7 +91,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where dataType = \'chromatinStructure\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["dataType"] = 'chromatinActivity'
+    correction_df["dataType"] = ['chromatinActivity']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -99,7 +99,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where dataType = \'counts\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["dataType"] = 'geneExpression'
+    correction_df["dataType"] = ['geneExpression']
     correction_df["dataSubtype"] = 'processed'
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
@@ -108,7 +108,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where dataType = \'genes\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["dataType"] = 'geneExpression'
+    correction_df["dataType"] = ['geneExpression']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -116,7 +116,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where dataType = \'histone modification\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["dataType"] = 'chromatinActivity'
+    correction_df["dataType"] = ['chromatinActivity']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -124,7 +124,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where dataType = \'IncRNA\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["dataType"] = 'geneExpression'
+    correction_df["dataType"] = ['geneExpression']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -132,7 +132,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where dataType = \'mRNA\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["dataType"] = 'geneExpression'
+    correction_df["dataType"] = ['geneExpression']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -202,7 +202,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where study = \'HumanACC\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["study"] = 'HumanFC'
+    correction_df["study"] = ['HumanFC']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -210,7 +210,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where study = \'IncRNA\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["study"] = 'lncRNA Pilot'
+    correction_df["study"] = ['lncRNA Pilot']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -218,7 +218,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where study = \'IsoHub\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["study"] = 'IsoHuB'
+    correction_df["study"] = ['IsoHuB']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -228,7 +228,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where tissue = \'ACC\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["tissue"] = 'anterior cingulate cortex'
+    correction_df["tissue"] = ['anterior cingulate cortex']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -236,7 +236,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where tissue = \'ACC,PFC\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["tissue"] = 'anterior cingulate cortex,prefrontal cortex'
+    correction_df["tissue"] = ['anterior cingulate cortex, prefrontal cortex']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -244,7 +244,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where tissue = \'DLPFC\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["tissue"] = 'dorsolateral prefrontal cortex'
+    correction_df["tissue"] = ['dorsolateral prefrontal cortex']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -252,7 +252,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where tissue = \'PFC\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["tissue"] = 'prefrontal cortex'
+    correction_df["tissue"] = ['prefrontal cortex']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -260,7 +260,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where tissue = \'mediodorsal nucleus of the thalamus\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["tissue"] = 'medial dorsal nucleus of thalamus'
+    correction_df["tissue"] = ['medial dorsal nucleus of thalamus']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -268,7 +268,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where tissue = \'olfactory epithelium\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["tissue"] = 'olfactory neuroepithelium'
+    correction_df["tissue"] = ['olfactory neuroepithelium']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
@@ -276,7 +276,7 @@ def main():
     correction = syn.tableQuery(f'select * from {PEC_FILE_VIEW_SYNID} where tissue = \'visual cortex\'')
     correction_df = correction.asDataFrame()
 
-    correction_df["tissue"] = 'primary visual cortex'
+    correction_df["tissue"] = ['primary visual cortex']
 
     fv = syn.store(synapseclient.Table(correction.tableId, correction_df))
 
