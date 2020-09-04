@@ -92,7 +92,7 @@ def main():
         for __, syn_id in filelist:
             syn_dict = {}
             syn_dict["syn_id"] = syn_id
-            syn_dict.update(syn.getAnnotations(syn_id))
+            syn_dict.update(syn.get_annotations(syn_id))
 
             # getAnnotations returns the annotations as lists, but individualID
             # and specimenID need to be strings. If neither are in the
