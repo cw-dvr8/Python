@@ -8,6 +8,9 @@ Storage space for my Sage python code that may or may not be in production.
     import dateutil.parser
     new_date = dateutil.parser.parse(string_date)
 
+#### Delete a key from a dictionary
+    dict.pop("name_of_key", None)
+
 #### Get current date
     import datetime
     current_date = datetime.datetime.today()
