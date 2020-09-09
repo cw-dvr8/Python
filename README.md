@@ -27,10 +27,12 @@ Storage space for my Sage python code that may or may not be in production.
     df = df.append(dictionary, ignore_index=True)
 
 #### Pandas - check that a column contains a string
-    df["column_name"].str.contains("string")
+    (df["column_name"].notnull()) &
+    (df["column_name"].str.contains("string"))
 
 #### Pandas - check that a column does not contain a string
-    ~df["column_name"].str.contains("string", na=False)
+    (df["column_name"].notnull()) &
+    (~df["column_name"].str.contains("string", na=False))
 
 #### Pandas - count the number of occurences of each unique column value
     unique_values = df.groupby("column_name")["column_name"].count()
