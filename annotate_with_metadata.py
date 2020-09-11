@@ -28,7 +28,6 @@ import synapseclient
 import synapseutils
 
 # Only some of the individual metadata keys will be used for annotating files.
-# INDIVIDUAL_KEYS = ["individualID", "individualIdSource", "primaryDiagnosis", "reportedGender"]
 INDIVIDUAL_KEYS = ["individualID"]
 
 PEC_SCHEMA_URL = "https://raw.githubusercontent.com/Sage-Bionetworks/sysbioDCCjsonschemas/master/PsychENCODE/psychENCODE_schema.json"
@@ -78,8 +77,8 @@ def main():
     pec_annot_df = pd.merge(ind_biosamp_df, assay_df, how="inner",
                             on="specimenID")
 
-    # Convert NaN to a blank string.
-    pec_annot_df.fillna("", inplace=True)
+    # Convert NaN to None.
+    pec_annot_df = pec_annot_df.where(pd.notnull(pec_annot_df), None)
 
     # Get rid of any extraneous columns that were added by the site.
     bad_keys = set(pec_annot_df.keys()).difference(pec_schema_keys)
@@ -109,8 +108,12 @@ def main():
 
                 syn_file_df = syn_file_df.append(syn_dict, ignore_index=True)
 
-    # Replace NaN values with missing.
-    syn_file_df.fillna("", inplace=True)
+    # Replace NaN values with None.
+    syn_file_df = syn_file_df.where(pd.notnull(syn_file_df), None)
+
+    # libraryID has been added to the file manifest, but use the one in the
+    # assay metadata instead.
+    syn_file_df.drop(["libraryID"], axis=1, inplace=True)
 
     # Merge the synapse files (with the current annotations) with the new
     # annotations from the metadata files.
@@ -121,7 +124,19 @@ def main():
     # create a dictionary with the Synapse id as a key.
     annot_dict_list = annotation_df.to_dict(orient="records")
 
-    for annot_rec in annot_dict_list:
+    # Get rid of any annotations where the key is empty.
+    clean_annot_dict_list = []
+    for annotation in annot_dict_list:
+        for annotkey in annotation:
+            # Synapse returns empty lists, so set any keys with empty lists to
+            # None.
+            if isinstance(annotation[annotkey], list):
+                if (len(annotation[annotkey]) == 1) & ("" in annotation[annotkey]):
+                    annotation[annotkey] = None
+        annotation = {k: v for k, v in annotation.items() if v is not None}
+        clean_annot_dict_list.append(annotation)
+
+    for annot_rec in clean_annot_dict_list:
         annotation_dict[annot_rec["syn_id"]] = annot_rec
         del annotation_dict[annot_rec["syn_id"]]["syn_id"]
 
