@@ -113,7 +113,8 @@ def main():
 
     # libraryID has been added to the file manifest, but use the one in the
     # assay metadata instead.
-    syn_file_df.drop(["libraryID"], axis=1, inplace=True)
+    if "libraryID" in syn_file_df.columns:
+        syn_file_df.drop(["libraryID"], axis=1, inplace=True)
 
     # Merge the synapse files (with the current annotations) with the new
     # annotations from the metadata files.
