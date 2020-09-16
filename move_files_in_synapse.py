@@ -5,6 +5,9 @@ Program: move_files_in_synapse.py
 
 Purpose: Move files from one Synapse folder to another.
 
+Note: This program only moves files residing in the folder specified. It does
+      not move files that might be in any sub-folders.
+
 """
 
 import argparse
@@ -32,6 +35,8 @@ def main():
 
             # Move the file to the destination.
             syn.move(syn_id, args.new_folder_synid)
+
+        break
 
 if __name__ == "__main__":
     main()
