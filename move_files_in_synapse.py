@@ -5,6 +5,8 @@ Program: move_files_in_synapse.py
 
 Purpose: Move files from one Synapse folder to another.
 
+Execution: move_files_in_synapse.py <current file folder> <new file folder>
+
 Note: This program only moves files residing in the folder specified. It does
       not move files that might be in any sub-folders.
 
