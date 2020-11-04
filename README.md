@@ -85,6 +85,10 @@ Storage space for my Sage python code that may or may not be in production.
     df.to_csv(filehandle, index=False)
     df.to_csv(filehandle, sep="\t", index=False)
 
+#### Pandas - write to an output file in DOS without creating blank lines
+    filehandle = open("filename", "w", newline="\n")
+    df.to_csv(filehandle, index=False)
+
 #### Pandas - write to standard output
     import sys
     df.to_csv(sys.stdout, index=False)
