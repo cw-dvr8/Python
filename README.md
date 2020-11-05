@@ -49,6 +49,9 @@ Storage space for my Sage python code that may or may not be in production.
 #### Pandas - drop columns
     df.drop(["column1", "column2", etc.], axis=1, inplace=True)
 
+#### Pandas - drop duplicate rows (keep first row and drop all others)
+    df2 = df.drop_duplicates(keep="first")
+
 #### Pandas - drop NaN
     df.dropna(axis=0, subset=["ColumnName"], inplace=True)
 
@@ -81,6 +84,10 @@ Storage space for my Sage python code that may or may not be in production.
 #### Pandas - write to an output file
     df.to_csv(filehandle, index=False)
     df.to_csv(filehandle, sep="\t", index=False)
+
+#### Pandas - write to an output file in DOS without creating blank lines
+    filehandle = open("filename", "w", newline="\n")
+    df.to_csv(filehandle, index=False)
 
 #### Pandas - write to standard output
     import sys
