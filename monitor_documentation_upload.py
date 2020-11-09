@@ -3,18 +3,19 @@
 """
 Program: monitor_documentation_upload.py
 
-Purpose: Traverse a Synapse folder containing study and assay documentation and
-         determine if any changes have been made to the contents. If so, create
-         a GitHub issue for the documentation.
+Purpose: Look up documentation files in a fileview of files uploaded through
+         the dccvalidator to see if changes have been made to the contents. If
+         so, create a GitHub issue for the documentation.
 
-Input parameters: Root folder Synapse ID
+Input parameters: Synapse ID of the fileview containing the dccvalidator files
                   Name of the GitHub repo to create the issue in.
                   Consortium
+                  Labels for GitHub
 
 Outputs: GitHub issue
 
-Execution: monitor_documentation_upload.py <root folder Synapse ID>
-               <GitHub repo name> <consortium>
+Execution: monitor_documentation_upload.py <fileview Synapse ID>
+               <GitHub repo name> <consortium> <labels>
 
 Notes: Users must have a .GithubConfig folder in their user directory
        containing a settings.json file. This file must contain a GitHub
@@ -30,31 +31,27 @@ Notes: Users must have a .GithubConfig folder in their user directory
 
        When generating the token, set the scope to "repo".
 
-       This program also expects the folder containing the documentation to be
-       named "Documentation".
-
 """
 
 import argparse
 import datetime
-import dateutil.parser
 import json
 import os.path
 import sys
-import pytz
 from github import Github
 import synapseclient
-import synapseutils
 
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("folder_syn_id", type=str,
-                        help="SynID of the root Synapse folder containing the documentation")
+    parser.add_argument("fileview_synid", type=str,
+                        help="SynID of the fileview containing the dccvalidator uploads")
     parser.add_argument("github_repo_name", type=str,
                         help="Name of the repo to create the issue in")
     parser.add_argument("consortium", type=str,
-                        help="Consortium Name")
+                        help="Consortium name")
+    parser.add_argument("labels", nargs="*",
+                        help="Issue labels")
 
     args = parser.parse_args()
 
@@ -78,59 +75,58 @@ def main():
     gh = Github(github_token)
     repo = gh.get_repo(args.github_repo_name)
 
-    current_unaware_dt = datetime.datetime.today()
-    # Have to make the current date timezone-aware so that we can use it in
-    # date arithmetic later.
-    current_dt = pytz.utc.localize(current_unaware_dt)
+    current_dt = datetime.datetime.today()
 
-    # Walk the specified Synapse folder and look for a subfolder
-    # called Documentation.
-    syn_contents = synapseutils.walk(syn, args.folder_syn_id)
-    for user_folder, dirlist, __ in syn_contents:
-        if len(dirlist) > 0:
-            for dirname, dir_syn_id in dirlist:
-                if dirname == "Documentation":
+    # Query the fileview. Get everything and then subset further down because
+    # it has been problematic in other cases to do a subsetted query on the
+    # fileview.
+    query_stmt = f'SELECT * FROM {args.fileview_synid}'
+    query_nan_df = syn.tableQuery(query_stmt).asDataFrame()
 
-                    # Create the issue title in case there are new or modified
-                    # documentation.
-                    issue_title = f"{args.consortium} {user_folder[0]} ({user_folder[1]})- Documentation Change"
-                    issue_body = ""
+    # Pandas reads in empty fields as nan. Replace nan with None.
+    query_df = query_nan_df.where(query_nan_df.notnull(), None).copy()
 
-                    # Walk the documentation folder looking for new or updated
-                    # files.
-                    dir_contents = synapseutils.walk(syn, dir_syn_id)
-                    for __, __, filelist in dir_contents:
-                        if len(filelist) > 0:
-                            for filename, file_syn_id in filelist:
-                                try:
-                                    file_entity = syn.restGET(f"/entity/{file_syn_id}/type")
-                                except:
-                                    continue
+    # Per Nicole and Kara, the current method to distinguish documentation
+    # files from metadata files is that the metadataType key is blank for
+    # documentation files. Also, get a list of studies so that it can be used
+    # to group issues.
+    documentation_df = query_df.loc[(query_df["metadataType"].isnull()) &
+                                    (query_df["study"].notnull())]
+    study_list = list(set(documentation_df["study"].to_list()))
 
-                                if ("createdOn" in file_entity) and ("modifiedOn" in file_entity):
-                                    createdOn_dt = dateutil.parser.parse(file_entity["createdOn"])
-                                    modifiedOn_dt = dateutil.parser.parse(file_entity["modifiedOn"])
-                                    if (((current_dt - createdOn_dt).days <= 1) or
-                                        ((current_dt - modifiedOn_dt).days <= 1)):
+    if len(documentation_df) > 0:
+        for study in study_list:
+            study_df = documentation_df.loc[documentation_df["study"] == study]
+            study_list = study_df.to_dict("records")
 
-                                        if (modifiedOn_dt - createdOn_dt).days == 0:
-                                            status = "New"
-                                        else:
-                                            status = "Modified"
+            # Initialize the issue title and body.
+            issue_title = f"{args.consortium} {study} - Documentation Change"
+            issue_body = ""
 
-                                        issue_body = issue_body + f"{status} file: {file_entity['name']}"
-                                        issue_body = issue_body + f" ({file_syn_id})\n"
-                                        issue_body = issue_body + f"Creation Date: {file_entity['createdOn']}\n"
+            for filerec in study_list:
 
-                                        if status == "Modified":
-                                            issue_body = issue_body + f"Modification Date: {file_entity['modifiedOn']}\n"
+                createdOn_dt = datetime.datetime.fromtimestamp(filerec["createdOn"] / 1e3)
+                modifiedOn_dt = datetime.datetime.fromtimestamp(filerec["modifiedOn"] / 1e3)
+                if ((current_dt - createdOn_dt).days == 0) or ((current_dt - modifiedOn_dt).days == 0):
 
-                                        issue_body = issue_body + "\n"
-                    if issue_body:
-                        # Create the GitHub issue.
-                        issue = repo.create_issue(title = issue_title,
-                                                  body = issue_body,
-                                                  labels = [args.consortium])
+                    if (modifiedOn_dt - createdOn_dt).days == 0:
+                        status = "New"
+                    else:
+                        status = "Modified"
+
+                    issue_body = issue_body + f"{status} file: {filerec['name']} ({filerec['id']})\n"
+                    issue_body = issue_body + f"Creation Date: {createdOn_dt}\n"
+
+                    if status == "Modified":
+                        issue_body = issue_body + f"Modification Date: {modifiedOn_dt}\n"
+
+                    issue_body = issue_body + "\n"
+
+            if issue_body:
+                # Create the GitHub issue.
+                issue = repo.create_issue(title = issue_title,
+                                          body = issue_body,
+                                          labels = args.labels)
 
 
 if __name__ == "__main__":
