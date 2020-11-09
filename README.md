@@ -11,6 +11,9 @@ Storage space for my Sage python code that may or may not be in production.
 #### Delete a key from a dictionary
     dict.pop("name_of_key", None)
 
+#### Delete duplicates from a list (does not retain the original order)
+    list2 = list(set(list1))
+
 #### Delete None values from a dictionary
     new_dict = {k: v for k, v in dict.items() if v is not None}
 
@@ -36,6 +39,9 @@ Storage space for my Sage python code that may or may not be in production.
 #### Pandas - check that a column does not contain a string
     (df["column_name"].notnull()) &
     (~df["column_name"].str.contains("string", na=False))
+
+#### Pandas - convert a dataframe to a list of dictionaries
+    dict_list = df.to_dict("records")
 
 #### Pandas - count the number of occurences of each unique column value
     unique_values = df.groupby("column_name")["column_name"].count()
