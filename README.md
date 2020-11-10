@@ -56,7 +56,10 @@ Storage space for my Sage python code that may or may not be in production.
     df.drop(["column1", "column2", etc.], axis=1, inplace=True)
 
 #### Pandas - drop duplicate rows (keep first row and drop all others)
-    df2 = df.drop_duplicates(keep="first")
+    df.drop_duplicates(keep="first", inplace=True)
+
+#### Pandas - drop duplicate rows based on columns (keep first row and drop all others)
+    df.drop_duplicates(["column1", "column2", "column3", etc.], keep="first", inplace=True)
 
 #### Pandas - drop NaN
     df.dropna(axis=0, subset=["ColumnName"], inplace=True)
