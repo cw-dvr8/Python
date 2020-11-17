@@ -28,7 +28,7 @@ import synapseclient
 import synapseutils
 
 # Only some of the individual metadata keys will be used for annotating files.
-INDIVIDUAL_KEYS = ["individualID"]
+INDIVIDUAL_KEYS = ["individualID", "species"]
 
 PEC_SCHEMA_URL = "https://raw.githubusercontent.com/Sage-Bionetworks/sysbioDCCjsonschemas/master/PsychENCODE/psychENCODE_schema.json"
 
