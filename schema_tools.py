@@ -219,6 +219,34 @@ def convert_string_to_other(data_row, val_schema, type_list, func_to_run):
     return converted_row
 
 
+def get_alias_dictionary(json_schema):
+    """
+    Function: get_alias_dictionary
+
+    Purpose: Given a dereferenced Synapse schema, return a dictionary of schema
+             names and their associated properties. This is necessary because
+             there are occasions where the property references a schema with
+             a different name. For example, in the PEC snpArray template
+             schema, the property is 260/280 but the schema it references is
+             qc260280 because Synapse does not allow non-alphanumeric
+             characters in the schema name and also requires that the schema
+             name starts with a character.
+
+    Input parameters: A dereferenced Synapse schema
+
+    Returns: A dictionary with the schema name as the key and the schema
+               property as the value.
+    """
+    alias_dict = {}
+    schema_properties = json_schema["validationSchema"]["properties"]
+
+    for key_val in schema_properties:
+        key = schema_properties[key_val]["$ref"].split(".")[-1]
+        alias_dict[key] = key_val
+
+    return alias_dict
+
+
 def get_definitions_values(json_schema):
     """
     Function: get_definitions_values
@@ -402,13 +430,17 @@ def get_Syn_definitions_values(json_schema):
     values_columns = ["key", "value", "valueDescription", "source"]
     values_df = pd.DataFrame(columns=values_columns)
 
+    # Get a list of schema aliases in case the property name is different
+    # from the schema name.
+    alias_dict = get_alias_dictionary(json_schema)
+
     schema_defs = json_schema["validationSchema"]["definitions"]
     for full_schema_name in schema_defs:
         definitions_dict = {}
 
         # The pattern of the schema name is organization-module.key
         key = full_schema_name.split("-")[1].split(".")[1]
-        definitions_dict["key"] = key
+        definitions_dict["key"] = alias_dict[key]
         schema_values = schema_defs[full_schema_name]
 
         if schema_values:
@@ -431,14 +463,14 @@ def get_Syn_definitions_values(json_schema):
 
             values_dict = {}
             if "pattern" in schema_values:
-                values_dict["key"] = schema_key
+                values_dict["key"] = alias_dict[key]
                 values_dict["value"] = schema_values["pattern"]
                 values_df = values_df.append(values_dict, ignore_index=True)
 
             elif any([value_key in schema_values for value_key in VALUES_LIST_KEYWORDS]):
                 vkey = list(set(VALUES_LIST_KEYWORDS).intersection(schema_values))[0]
                 for value_row in schema_values[vkey]:
-                    values_dict["key"] = key
+                    values_dict["key"] = alias_dict[key]
 
                     if "const" in value_row:
                         values_dict["value"] = value_row["const"]
