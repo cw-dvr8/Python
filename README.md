@@ -26,6 +26,9 @@ Storage space for my Sage python code that may or may not be in production.
     date_diff = dt_object2 - dt_object1
     date_diff.days
 
+#### Get the longest string in a list of strings
+    result = max(string_list, key=len)
+
 #### Pandas - append data frames
     df1 = df1.append(df2, ignore_index=True, sort=False)
 
