@@ -105,6 +105,9 @@ Storage space for my Sage python code that may or may not be in production.
     import sys
     df.to_csv(sys.stdout, index=False)
 
+#### Rename a key in a dictionary
+    dictionary[new_key] = dictionary.pop(old_key)
+
 #### Synapse login
     import synapseclient
     syn = synapseclient.Synapse()
