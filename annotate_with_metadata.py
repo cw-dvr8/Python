@@ -61,11 +61,14 @@ def main():
     pec_schema_keys = pec_schema["properties"].keys()
 
     # Download the metadata files from Synapse and read their contents into
-    # dataframes.
+    # dataframes. If all of the individual IDs are numeric, they will be
+    # read in as numbers so make sure they are character.
     individual_df = pd.read_csv(open(syn.get(args.individual_synapse_id).path))
     individual_df = individual_df[INDIVIDUAL_KEYS]
+    individual_df["individualID"] = individual_df["individualID"].astype(str)
 
     biospecimen_df = pd.read_csv(open(syn.get(args.biospecimen_synapse_id).path))
+    biospecimen_df["individualID"] = biospecimen_df["individualID"].astype(str)
 
     assay_df = pd.read_csv(open(syn.get(args.assay_synapse_id).path))
 
@@ -99,8 +102,17 @@ def main():
             # dataframe.
             if ("individualID" in syn_dict) or ("specimenID" in syn_dict):
                 character_id_var = ""
+
+                # If all of the individual IDs are numeric, Synapse will read
+                # them as floats.
                 if "individualID" in syn_dict:
-                    syn_dict["individualID"] = character_id_var.join(syn_dict["individualID"])
+                    individualID = ""
+                    for indID in syn_dict["individualID"]:
+                        if isinstance(indID, float):
+                            individualID += str(int(indID))
+                        else:
+                            individualID += indID
+                    syn_dict["individualID"] = individualID
                 if "specimenID" in syn_dict:
                     syn_dict["specimenID"] = character_id_var.join(syn_dict["specimenID"])
                 if "assay" in syn_dict:
