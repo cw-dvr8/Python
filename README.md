@@ -18,7 +18,7 @@ Storage space for my Sage python code that may or may not be in production.
     new_dict = {k: v for k, v in dict.items() if v is not None}
 
 #### Execute a Python script in ipython
-    exec(open("*name_of_script.py*").read())
+    exec(open("python_script.py").read())
 
 #### Get current date
     import datetime
