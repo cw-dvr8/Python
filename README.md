@@ -17,6 +17,9 @@ Storage space for my Sage python code that may or may not be in production.
 #### Delete None values from a dictionary
     new_dict = {k: v for k, v in dict.items() if v is not None}
 
+#### Execute a Python script in ipython
+    exec(open("_name_of_script.py_").read())
+
 #### Get current date
     import datetime
     current_date = datetime.datetime.today()
