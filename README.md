@@ -49,6 +49,9 @@ Storage space for my Sage python code that may or may not be in production.
 #### Pandas - convert a dataframe to a list of dictionaries
     dict_list = df.to_dict("records")
 
+#### Pandas - convert values in a list column to string
+    df["column_name"] = ["".join(i) if isinstance(i, list) else i for i in df["column_name"]]
+
 #### Pandas - count the number of occurences of each unique column value
     unique_values = df.groupby("column_name")["column_name"].count()
 
