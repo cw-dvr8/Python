@@ -52,6 +52,9 @@ Storage space for my Sage python code that may or may not be in production.
 #### Pandas - convert values in a list column to string
     df["column_name"] = ["".join(i) if isinstance(i, list) else i for i in df["column_name"]]
 
+#### Pandas - convert values in a string column to integer
+    df["column_name"] = pd.to_numeric(df["column_name"], errors="coerce").astype(pd.Int64Dtype())
+
 #### Pandas - count the number of occurences of each unique column value
     unique_values = df.groupby("column_name")["column_name"].count()
 
