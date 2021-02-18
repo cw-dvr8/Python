@@ -76,6 +76,12 @@ Storage space for my Sage python code that may or may not be in production.
 #### Pandas - drop NaN
     df.dropna(axis=0, subset=["ColumnName"], inplace=True)
 
+#### Pandas - get only alphabetic characters from a string
+    df["new_column"] = df["original_column"].str.replace("\d+", "", regex=True)
+
+#### Pandas - get only numeric characters from a string
+    df["new_column"] = df["original_column"].str.extract("(\d+)", expand=False)
+
 #### Pandas - initialize empty data frame with column names
     df = pd.DataFrame(columns=["column1", "column2", "column3", etc.])
 
