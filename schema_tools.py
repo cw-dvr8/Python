@@ -395,7 +395,7 @@ def get_schema_properties(json_schema):
     return(definitions_dict, values_dict)
 
 
-def get_Syn_definitions_values(json_schema):
+def get_Syn_definitions_values(json_schema, synlogin):
     """
     Function: get_Syn_definitions_values
 
@@ -403,6 +403,8 @@ def get_Syn_definitions_values(json_schema):
              templates.
 
     Input parameters: File object pointing to the JSON schema file
+                      Synapse object created in the main program to log into
+                          Synapse.
 
     Returns: A dataframe of key types, definitions, required keys, and maximum
              sizes
@@ -460,6 +462,17 @@ def get_Syn_definitions_values(json_schema):
                 definitions_dict["required"] = False
 
             definitions_df = definitions_df.append(definitions_dict, ignore_index=True)
+
+            # If the term is a redefinition of an existing term, resolve the
+            # existing reference in order to get the values list. If the
+            # existing object contains a values list (anyOf or enum), add it
+            # to the redefined terms keys.
+            if "properties" in schema_values:
+                existing_schema = synlogin._waitForAsync("/schema/type/validation/async",
+                                                         {"$id": schema_values["properties"][key]["$ref"]})
+                if any([value_key in existing_schema["validationSchema"] for value_key in VALUES_LIST_KEYWORDS]):
+                    vkey = list(set(VALUES_LIST_KEYWORDS).intersection(existing_schema["validationSchema"]))[0]
+                    schema_values[vkey] = existing_schema["validationSchema"][vkey]
 
             values_dict = {}
             if "pattern" in schema_values:
