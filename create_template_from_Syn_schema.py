@@ -46,7 +46,7 @@ def main():
     args = parser.parse_args()
 
     json_schema = syn._waitForAsync("/schema/type/validation/async", {"$id": args.json_schema_name})
-    definitions_df, values_df = schema_tools.get_Syn_definitions_values(json_schema)
+    definitions_df, values_df = schema_tools.get_Syn_definitions_values(json_schema, syn)
     definitions_df = definitions_df[["key", "description"]]
     template_df = pd.DataFrame(columns=definitions_df["key"].tolist())
 
