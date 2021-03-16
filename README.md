@@ -94,7 +94,7 @@ Storage space for my Sage python code that may or may not be in production.
                       indicator=True)
 
 #### Pandas - read_csv specifying utf-8 (get rid of special characters in the first column name)
-    df = pd.read_csf(filehandle, "r", encoding="utf-8")
+    df = pd.read_csv(filehandle, "r", encoding="utf-8")
 
 #### Pandas - read_csv with tabs as delimiters
     df = pd.read_csv(filehandle, sep="\t")
