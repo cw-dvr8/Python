@@ -130,6 +130,10 @@ Storage space for my Sage python code that may or may not be in production.
     import sys
     df.to_csv(sys.stdout, index=False)
 
+#### Reload a module in ipython
+    from importlib import reload
+    reload(module)
+
 #### Rename a key in a dictionary
     dictionary[new_key] = dictionary.pop(old_key)
 
