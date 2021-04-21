@@ -7,6 +7,7 @@ Purpose: Merge individual, biospecimen, and assay metadata files together and
          use them to annotate data files.
 
 Input parameters:
+    annotations_table_synapse_id - Synapse ID for the annotations table
     individual_synapse_id - Synapse ID for the individual metadata file
     biospecimen_synapse_id - Synapse ID for the biospecimen metadata file
     assay_synapse_id - Synapse ID for the assay metadata file
@@ -14,9 +15,13 @@ Input parameters:
 
 Outputs: File annotations on Synapse
 
-Execution: annotate_with_metadata.py <individual metadata file Synapse ID>
+Execution: annotate_with_metadata.py <annotations table Synapse ID>
+               <individual metadata file Synapse ID>
                <biospecimen metadata file Synapse ID>
                <assay metadata file Synapse ID> <Synapse parent ID>
+
+Notes: This program does not currently work with multi-individual or
+       multi-specimen files.
 
 """
 
@@ -30,11 +35,11 @@ import synapseutils
 # Only some of the individual metadata keys will be used for annotating files.
 INDIVIDUAL_KEYS = ["individualID", "species"]
 
-PEC_SCHEMA_URL = "https://raw.githubusercontent.com/Sage-Bionetworks/sysbioDCCjsonschemas/master/PsychENCODE/psychENCODE_schema.json"
-
 def main():
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("annotations_table_synapse_id", type=str,
+                        help="Synapse ID for the consortium annotations table")
     parser.add_argument("individual_synapse_id", type=str,
                         help="Synapse ID for the individual metadata file")
     parser.add_argument("biospecimen_synapse_id", type=str,
@@ -53,12 +58,12 @@ def main():
     syn = synapseclient.Synapse()
     syn.login(silent=True)
 
-    # Read in the PsychENCODE JSON schema in order to use it to look for
-    # non-Sage keys added by the contributor.
-    with urllib.request.urlopen(PEC_SCHEMA_URL) as pec_json_url:
-        pec_schema = json.loads(pec_json_url.read().decode())
-
-    pec_schema_keys = pec_schema["properties"].keys()
+    # Create a query statement for the consortium annotations table in order
+    # to get the list of valid annotations.
+    query_stmt = f'SELECT key FROM {args.annotations_table_synapse_id}'
+    valid_keys_df = syn.tableQuery(query_stmt).asDataFrame()
+    valid_keys_df.drop_duplicates(keep="first", inplace=True)
+    valid_keys_list = valid_keys_df["key"].tolist()
 
     # Download the metadata files from Synapse and read their contents into
     # dataframes. If all of the individual IDs are numeric, they will be
@@ -77,16 +82,16 @@ def main():
     ind_biosamp_df = pd.merge(individual_df, biospecimen_df, how="inner",
                               on="individualID")
 
-    pec_annot_df = pd.merge(ind_biosamp_df, assay_df, how="inner",
+    all_annot_df = pd.merge(ind_biosamp_df, assay_df, how="inner",
                             on="specimenID")
 
     # Convert NaN to None.
-    pec_annot_df = pec_annot_df.where(pd.notnull(pec_annot_df), None)
+    all_annot_df = all_annot_df.where(pd.notnull(all_annot_df), None)
 
     # Get rid of any extraneous columns that were added by the site.
-    bad_keys = set(pec_annot_df.keys()).difference(pec_schema_keys)
+    bad_keys = set(all_annot_df.keys()).difference(valid_keys_list)
     for key in bad_keys:
-        pec_annot_df.drop(key, axis=1, inplace=True)
+        all_annot_df.drop(key, axis=1, inplace=True)
 
     # Get the list of files to be annotated from the Synapse parent ID.
     syn_contents = synapseutils.walk(syn, args.parent_synapse_id)
@@ -130,7 +135,7 @@ def main():
 
     # Merge the synapse files (with the current annotations) with the new
     # annotations from the metadata files.
-    annotation_df = pd.merge(pec_annot_df, syn_file_df, how="inner",
+    annotation_df = pd.merge(all_annot_df, syn_file_df, how="inner",
                              on=["individualID", "specimenID", "assay"])
 
     # Create a list of the annotations dictionaries, and then use it to
