@@ -94,7 +94,7 @@ Storage space for my Sage python code that may or may not be in production.
                       indicator=True)
 
 #### Pandas - read_csv specifying utf-8 (get rid of special characters in the first column name)
-    df = pd.read_csf(filehandle, "r", encoding="utf-8")
+    df = pd.read_csv(filehandle, "r", encoding="utf-8")
 
 #### Pandas - read_csv with tabs as delimiters
     df = pd.read_csv(filehandle, sep="\t")
@@ -129,6 +129,10 @@ Storage space for my Sage python code that may or may not be in production.
 #### Pandas - write to standard output
     import sys
     df.to_csv(sys.stdout, index=False)
+
+#### Reload a module in ipython
+    from importlib import reload
+    reload(module)
 
 #### Rename a key in a dictionary
     dictionary[new_key] = dictionary.pop(old_key)
