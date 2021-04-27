@@ -46,6 +46,9 @@ Storage space for my Sage python code that may or may not be in production.
     (df["column_name"].notnull()) &
     (~df["column_name"].str.contains("string", na=False))
 
+#### Pandas - convert a column to a list
+    column_list = df["column"].tolist()
+
 #### Pandas - convert a dataframe to a list of dictionaries
     dict_list = df.to_dict("records")
 
