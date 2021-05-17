@@ -27,7 +27,6 @@ Notes: This program does not currently work with multi-individual or
 
 import argparse
 import json
-import urllib.request
 import pandas as pd
 import synapseclient
 import synapseutils
