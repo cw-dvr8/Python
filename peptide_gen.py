@@ -17,12 +17,12 @@ Input parameters: Length of peptide
 Outputs: Excel file
 
 Execution (single file): python peptide_gen.py -length <length> -overlap <overlap>
-                         -output_file <output file name>
+                         -out_file <output file name>
                          -seq_file <sequence file name> single_file
                          -refseq <reference sequence ID>
 
 Execution (two files): python peptide_gen.py -length <length> -overlap <overlap>
-                       -output_file <output file name>
+                       -out_file <output file name>
                        -seq_file <sequence file name> two_files
                        -ref_file <reference sequence file name>
 """
@@ -31,23 +31,24 @@ import argparse
 from Bio import SeqIO
 import pandas as pd
 
-"""
-Function: create_peptides
-
-Purpose: Create peptides from the reference and target sequence and
-         compare them to find the new peptides in the target
-         sequence.
-
-Inputs: pep_length - desired peptide length
-        pep_overlap - desired peptide overlap
-        pep_file - output file
-        ref_record - reference sequence record, generated either from a SeqIO.read
-                     call or an iteration of a SeqIO.parse call
-        comp_record - target sequence record, generated either from a SeqIO.read
-                      call or an iteration of a SeqIO.parse call
-Outputs: Excel file
-"""
 def create_peptides(pep_length, pep_overlap, pep_file, ref_record, comp_record):
+
+    """
+    Function: create_peptides
+
+    Purpose: Create peptides from the reference and target sequence and
+             compare them to find the new peptides in the target
+             sequence.
+
+    Inputs: pep_length - desired peptide length
+            pep_overlap - desired peptide overlap
+            pep_file - output file
+            ref_record - reference sequence record, generated either from a SeqIO.read
+                         call or an iteration of a SeqIO.parse call
+            comp_record - target sequence record, generated either from a SeqIO.read
+                          call or an iteration of a SeqIO.parse call
+    Outputs: Excel file
+    """
 
     start_pos_increment = pep_length - pep_overlap
 
@@ -199,19 +200,20 @@ def create_peptides(pep_length, pep_overlap, pep_file, ref_record, comp_record):
     peptide_df.to_excel(pep_file, sheet_name="Peptides", index=False)
     pep_file.close()
 
-"""
-Function: process_single_file
-
-Purpose: Read through the sequences contained in a single file,
-         determine which is the reference and which is the target,
-         and call the create_peptides function. Note that this
-         program currently does not handle files with multiple
-         target sequences.
-
-Inputs: args - object containing the arguments passed into the
-               program
-"""
 def process_single_file(args):
+
+    """
+    Function: process_single_file
+
+    Purpose: Read through the sequences contained in a single file,
+             determine which is the reference and which is the target,
+             and call the create_peptides function. Note that this
+             program currently does not handle files with multiple
+             target sequences.
+
+    Inputs: args - object containing the arguments passed into the
+                   program
+    """
 
     for seq_record in SeqIO.parse(args.seq_file, "fasta"):
         if seq_record.id == args.refseq_id:
@@ -221,27 +223,25 @@ def process_single_file(args):
 
     create_peptides(args.length, args.overlap, args.out_file, ref_record, comp_record)
 
-"""
-Function: process_two_files
-
-Purpose: Read in the fasta file containing the reference sequence
-         and the fasta file containing the target sequence, and
-         call the create_peptides function. Note that this
-         program currently does not handle files with multiple
-         target sequences.
-
-Inputs: args - object containing the arguments passed into the
-               program
-"""
 def process_two_files(args):
+
+    """
+    Function: process_two_files
+
+    Purpose: Read in the fasta file containing the reference sequence
+             and the fasta file containing the target sequence, and
+             call the create_peptides function. Note that this
+             program currently does not handle files with multiple
+             target sequences.
+
+    Inputs: args - object containing the arguments passed into the
+                   program
+    """
 
     ref_record = SeqIO.read(args.ref_file, "fasta")
     comp_record = SeqIO.read(args.seq_file, "fasta")
     create_peptides(args.length, args.overlap, args.out_file, ref_record, comp_record)
 
-"""
-Function: main
-"""
 def main():
 
     parent_parser = argparse.ArgumentParser(add_help=False)
