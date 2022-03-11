@@ -79,6 +79,9 @@ Storage space for my Sage python code that may or may not be in production.
 #### Pandas - drop NaN
     df.dropna(axis=0, subset=["ColumnName"], inplace=True)
 
+#### Pandas - get the first X columns in a dataframe
+    df1 = df.iloc[:, :X]
+
 #### Pandas - get only alphabetic characters from a string
     df["new_column"] = df["original_column"].str.replace("\d+", "", regex=True)
 
