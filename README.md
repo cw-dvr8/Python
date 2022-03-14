@@ -1,6 +1,6 @@
 ## Python
 
-Storage space for my Sage python code that may or may not be in production.
+Storage space for my Python code that may or may not be in production.
 
 ## Syntax cheat-sheet
 
@@ -20,6 +20,9 @@ Storage space for my Sage python code that may or may not be in production.
 #### Execute a Python script in ipython
     exec(open("python_script.py").read())
 
+#### Get the character represented by an ordinal value
+    ord_char = chr(ord(orig_char))
+
 #### Get current date
     import datetime
     current_date = datetime.datetime.today()
@@ -31,6 +34,9 @@ Storage space for my Sage python code that may or may not be in production.
 
 #### Get the longest string in a list of strings
     result = max(string_list, key=len)
+
+#### Get the ordinal value of a character
+    char_ord = ord(orig_char)
 
 #### Pandas - append data frames
     df1 = df1.append(df2, ignore_index=True, sort=False)
