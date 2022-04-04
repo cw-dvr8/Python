@@ -149,6 +149,10 @@ Storage space for my Python code that may or may not be in production.
 #### Rename a key in a dictionary
     dictionary[new_key] = dictionary.pop(old_key)
 
+#### Remove all non-numeric characters in a string
+    import re
+    new_string = re.sub("[^\d]", "", old_string)
+
 #### Synapse login
     import synapseclient
     syn = synapseclient.Synapse()
