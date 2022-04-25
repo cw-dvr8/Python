@@ -8,6 +8,10 @@ Storage space for my Python code that may or may not be in production.
     import dateutil.parser
     new_date = dateutil.parser.parse(string_date)
 
+#### Create a complete file path using a directory and a file name
+    from pathlib import Path
+    file_path = Path(directory_var).joinpath(file_name_var)
+
 #### Delete a key from a dictionary
     dict.pop("name_of_key", None)
 
