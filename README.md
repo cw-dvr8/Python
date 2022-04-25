@@ -34,6 +34,14 @@ Storage space for my Python code that may or may not be in production.
 
 #### Get the longest string in a list of strings
     result = max(string_list, key=len)
+    
+#### Get the name of a file from a string containing the full path
+    from pathlib import Path
+    in_file = Path(full_path_var).name
+
+#### Get the name of a file, excluding extension, from a string containing the full path
+    from pathlib import Path
+    in_file_no_ext = Path(full_path_var).stem
 
 #### Get the ordinal value of a character
     char_ord = ord(orig_char)
