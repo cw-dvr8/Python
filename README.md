@@ -165,6 +165,9 @@ Storage space for my Python code that may or may not be in production.
     import re
     new_string = re.sub("[^\d]", "", old_string)
 
+#### Run a script from interactive Python (V3)
+    exec(open("python script").read())
+
 #### Synapse login
     import synapseclient
     syn = synapseclient.Synapse()
