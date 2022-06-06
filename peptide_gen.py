@@ -215,11 +215,9 @@ def process_single_file(args):
     """
     Function: process_single_file
 
-    Purpose: Read through the sequences contained in a single file,
-             determine which is the reference and which is the target,
-             and call the create_peptides function. Note that this
-             program currently does not handle files with multiple
-             target sequences.
+    Purpose: Read through the sequences contained in a single file, determine
+             which is the reference and which is the target, and call the
+             create_peptides function.
 
     Inputs: args - object containing the arguments passed into the
                    program
@@ -240,11 +238,9 @@ def process_two_files(args):
     """
     Function: process_two_files
 
-    Purpose: Read in the fasta file containing the reference sequence
-             and the fasta file containing the target sequence, and
-             call the create_peptides function. Note that this
-             program currently does not handle files with multiple
-             target sequences.
+    Purpose: Read in the fasta file containing the reference sequence and the
+             fasta file containing the target sequence, and call the
+             create_peptides function.
 
     Inputs: args - object containing the arguments passed into the
                    program
