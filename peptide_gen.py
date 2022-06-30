@@ -53,11 +53,29 @@ def create_peptides(pep_length, pep_overlap, pep_file, ref_record, comp_record_l
     peptide_df = pd.DataFrame()
     start_pos_increment = pep_length - pep_overlap
 
+    valid_aa_codes = set("ACDEFGHIKLMNPQRSTVWY-")
+
     ref_id = ref_record.id
-    ref_seq = str(ref_record.seq)
+    ref_seq = str(ref_record.seq).replace("*", "")
+
+    # Stop execution if there are any invalid amino acid codes in the reference
+    # sequence.
+    code_compare = list(set(ref_seq) - valid_aa_codes)
+    if code_compare:
+        print(f"\nInvalid AA codes in reference sequence: {code_compare}\n")
+        raise SystemExit(0)
+
     for comp_record in comp_record_list:
         comp_id = comp_record.id
-        comp_seq = str(comp_record.seq)
+        comp_seq = str(comp_record.seq).replace("*", "")
+
+        # Stop execution if there are any invalid amino acid codes in the
+        # comparison sequence.
+        code_compare = list(set(comp_seq) - valid_aa_codes)
+        if code_compare:
+            print(f"\nInvalid AA codes in reference sequence {comp_id}: {code_compare}\n")
+            raise SystemExit(0)
+
         comp_newpeptide_string = comp_id + " New Peptide"
 
         peptide_dict_list = []
