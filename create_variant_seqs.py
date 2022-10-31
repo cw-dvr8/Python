@@ -41,8 +41,8 @@ def main():
     args = parser.parse_args()
 
     changes_dict = {}
-    inserts_dict = {}
-    nonvar_insert_dict = {}
+    insertions_dict = {}
+    nonvariant_insert_dict = {}
     seq_dict = {}
 
     # Read the variant table into a dictionary with the variant name/label as
@@ -54,47 +54,52 @@ def main():
 
         if skip_header is not None:
             for val_list in file_lines:
-                line_dict = {}
                 variant_name = val_list.pop(0)
-                line_dict["variant_pos"] = val_list.pop(0)
-                line_dict["ref_val"] = val_list.pop(0)
-                line_dict["variant_val"] = val_list.pop(0)
+                # Since Python is 0-indexed, the position to be changed is one
+                # less than the position listed for the variants in the file.
+                variant_pos = int(val_list.pop(0)) - 1
+                ref_val = val_list.pop(0)
+                variant_val = val_list.pop(0)
 
-                if line_dict["ref_val"] == "+":
-                    if variant_name not in inserts_dict:
-                        inserts_dict[variant_name] = []
-                    inserts_dict[variant_name].append(line_dict)
-                    if line_dict["variant_pos"] not in nonvar_insert_dict:
-                        nonvar_insert_dict[line_dict["variant_pos"]] = "-"
+                if "-" in ref_val:
+                    if variant_name not in insertions_dict:
+                        insertions_dict[variant_name] = {}
+
+                    # Note that insertions are made after the specified
+                    # position.
+                    insertions_dict[variant_name][variant_pos + 1] = variant_val
+                    nonvariant_insert_dict[variant_pos + 1] = ref_val
                 else:
-                    line_dict["variant_pos"] = int(line_dict["variant_pos"])
                     if variant_name not in changes_dict:
-                        changes_dict[variant_name] = []
-                    changes_dict[variant_name].append(line_dict)
+                        changes_dict[variant_name] = {}
+                    changes_dict[variant_name][variant_pos] = {}
+                    changes_dict[variant_name][variant_pos]["ref_val"] = ref_val
+                    changes_dict[variant_name][variant_pos]["variant_val"] = variant_val
 
     # Read in the reference sequence.
     ref_record = SeqIO.read(args.refseq_file, "fasta")
     ref_seq = str(ref_record.seq)
     seq_dict[ref_record.id] = list(ref_seq)
 
-    # Process the changes (including deletions) first. Since Python is
-    # 0-indexed, the position to be changed is one less than the position
-    # listed for the variants in the file.
+    # Process the changes (including deletions) first.
     for variant in changes_dict:
         seq_dict[variant] = list(ref_seq)
-        for change_rec in changes_dict[variant]:
-            seq_dict[variant][change_rec["variant_pos"] - 1] = change_rec["variant_val"]
+        for change_pos in changes_dict[variant]:
+            if seq_dict[variant][change_pos] != changes_dict[variant][change_pos]["ref_val"]:
+                print(f"ERROR: Position {change_pos} in reference is not {change_dict[variant][change_pos]['ref_val']}")
+            else:
+                seq_dict[variant][change_pos] = changes_dict[variant][change_pos]["variant_val"]
 
-    # Process the insertions. This is done as a separate step in order to
-    # include the reference sequence in the processing.
     for seq in seq_dict:
-        working_insert_dict = nonvar_insert_dict.copy()
-        if seq in inserts_dict:
-            for insert_rec in inserts_dict[seq]:
-                working_insert_dict[insert_rec["variant_pos"]] = insert_rec["variant_val"]
-        for insert_pos in sorted(working_insert_dict, reverse=True):
-            int_pos = int(re.sub("[^\d]", "", insert_pos)) - 1
-            seq_dict[seq].insert(int_pos, working_insert_dict[insert_pos])
+        # Process the insertions. This is done as a separate step in order to
+        # include the reference sequence in the processing.
+        if insertions_dict:
+            if seq in insertions_dict:
+                for insert_pos in sorted(insertions_dict[seq], reverse=True):
+                    seq_dict[seq].insert(insert_pos, insertions_dict[seq][insert_pos])
+            else:
+                for insert_pos in sorted(nonvariant_insert_dict, reverse=True):
+                    seq_dict[seq].insert(insert_pos, nonvariant_insert_dict[insert_pos])
 
         seq_dict[seq] = "".join(seq_dict[seq])
         args.out_file.write(f">{seq}\n")
