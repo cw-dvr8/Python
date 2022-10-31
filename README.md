@@ -158,12 +158,15 @@ Storage space for my Python code that may or may not be in production.
     from importlib import reload
     reload(module)
 
-#### Rename a key in a dictionary
-    dictionary[new_key] = dictionary.pop(old_key)
-
 #### Remove all non-numeric characters in a string
     import re
     new_string = re.sub("[^\d]", "", old_string)
+
+#### Remove duplicates from a list
+    new_list = list(set(old_list))
+
+#### Rename a key in a dictionary
+    dictionary[new_key] = dictionary.pop(old_key)
 
 #### Run a script from interactive Python (V3)
     exec(open("python script").read())
