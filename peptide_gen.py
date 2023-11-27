@@ -1,37 +1,28 @@
 """
 Program: peptide_gen.py
 
-Purpose: Create an Excel spreadsheet containing peptides generated from
-         sequence files, with an indicator as to whether they match
-         the peptide in the same position in a reference sequence.
-         The sequence and the reference sequence can be in either
-         two different files, or one file containing both.
+Purpose: Create Excel spreadsheets containing peptides generated from sequence
+         files, with an indicator as to whether they match the peptide in the
+         same position in a reference sequence.  The sequence and the reference
+         sequence can be in either two different files, or one file containing
+         both.  One spreadsheet will contain the peptides generated from all of
+         the sequences, and the other will consolidate the peptides into a
+         single column with another column indicating which sequences contain
+         them.
 
-Input parameters: Length of peptide
-                  Peptide overlap
-                  Output file name (.xlsx)
-                  Sequence file name
-                  single_file parameters: reference sequence ID
-                  two_files parameters: reference sequence file name
+Input parameters: See the docstring in the main() module.
 
-Outputs: Excel file
+Outputs: Excel files
 
-Execution (single file): python peptide_gen.py -length <length> -overlap <overlap>
-                         -out_file <output file name>
-                         -seq_file <sequence file name> single_file
-                         -refseq <reference sequence ID>
+Execution: See the docstring in the main() module.
 
-Execution (two files): python peptide_gen.py -length <length> -overlap <overlap>
-                       -out_file <output file name>
-                       -seq_file <sequence file name> two_files
-                       -ref_file <reference sequence file name>
 """
 
-import argparse
 from Bio import SeqIO
+import click
 import pandas as pd
 
-def create_peptides(pep_length, pep_overlap, pep_file, ref_record, comp_record_list):
+def create_peptides(pep_length, pep_overlap, pep_file_root, ref_record, comp_record_list):
 
     """
     Function: create_peptides
@@ -42,15 +33,19 @@ def create_peptides(pep_length, pep_overlap, pep_file, ref_record, comp_record_l
 
     Inputs: pep_length - desired peptide length
             pep_overlap - desired peptide overlap
-            pep_file - output file
+            pep_file_root - output file root name
             ref_record - reference sequence record, generated either from a SeqIO.read
                          call or an iteration of a SeqIO.parse call
             comp_record_list - target sequence records
 
-    Outputs: Excel file
+    Outputs: Excel files
     """
 
+    output_fp = open(f"{pep_file_root}.xlsx", "wb")
+    consolidated_output_fp = open(f"{pep_file_root}_consolidated.xlsx", "wb")
+
     peptide_df = pd.DataFrame()
+    consolidated_peptide_dict = {}
     start_pos_increment = pep_length - pep_overlap
 
     valid_aa_codes = set("ACDEFGHIKLMNPQRSTVWY-")
@@ -162,6 +157,20 @@ def create_peptides(pep_length, pep_overlap, pep_file, ref_record, comp_record_l
                 peptide_dict[comp_newpeptide_string] = "new peptide"
             peptide_dict_list.append(peptide_dict)
 
+            if start_pos not in consolidated_peptide_dict:
+                consolidated_peptide_dict[start_pos] = {}
+
+            if new_ref_peptide not in consolidated_peptide_dict[start_pos]:
+                consolidated_peptide_dict[start_pos][new_ref_peptide] = {}
+                consolidated_peptide_dict[start_pos][new_ref_peptide]["in_seqs"] = ref_id
+
+            if new_comp_peptide not in consolidated_peptide_dict[start_pos]:
+                consolidated_peptide_dict[start_pos][new_comp_peptide] = {}
+                consolidated_peptide_dict[start_pos][new_comp_peptide]["in_seqs"] = comp_id
+            else:
+                consolidated_peptide_dict[start_pos][new_comp_peptide]["in_seqs"] = f"{consolidated_peptide_dict[start_pos][new_comp_peptide]['in_seqs']}|{comp_id}"
+                
+
             # If the length of the reference sequence at the current position
             # (excluding gaps) is the desired peptide length, set the loop
             # controller to True.
@@ -225,31 +234,23 @@ def create_peptides(pep_length, pep_overlap, pep_file, ref_record, comp_record_l
             peptide_dict_df.drop([ref_id], axis=1, inplace=True)
             peptide_df = pd.merge(peptide_df, peptide_dict_df, how="left", on=["Start Position", "Stop Position"])
 
-    peptide_df.to_excel(pep_file, sheet_name="Peptides", index=False)
-    pep_file.close()
+    peptide_df.to_excel(output_fp, sheet_name="Peptides", index=False)
+    output_fp.close()
 
-def process_single_file(args):
+    consolidated_peptide_list = []
+    for start_pos in consolidated_peptide_dict:
+        for peptide in consolidated_peptide_dict[start_pos]:
+            peptide_dict = {}
+            peptide_dict["Start Position"] = start_pos
+            peptide_dict["Stop Position"] = start_pos + (pep_length - 1)
+            peptide_dict["Peptide"] = peptide
+            peptide_dict["Contained In"] = consolidated_peptide_dict[start_pos][peptide]["in_seqs"]
+            consolidated_peptide_list.append(peptide_dict)
 
-    """
-    Function: process_single_file
+    consolidated_peptide_df = pd.DataFrame.from_records(consolidated_peptide_list)
+    consolidated_peptide_df.to_excel(consolidated_output_fp, sheet_name="Consolidated Peptides", index=False)
+    consolidated_output_fp.close()
 
-    Purpose: Read through the sequences contained in a single file, determine
-             which is the reference and which is the target, and call the
-             create_peptides function.
-
-    Inputs: args - object containing the arguments passed into the
-                   program
-    """
-
-    comp_record_list = []
-
-    for seq_record in SeqIO.parse(args.seq_file, "fasta"):
-        if seq_record.id == args.refseq_id:
-            ref_record = seq_record
-        else:
-            comp_record_list.append(seq_record)
-
-    create_peptides(args.length, args.overlap, args.out_file, ref_record, comp_record_list)
 
 def process_two_files(args):
 
@@ -264,48 +265,94 @@ def process_two_files(args):
                    program
     """
 
+@click.argument("seq_fp", type=click.File("r"))
+@click.argument("outfile_root", type=str)
+@click.argument("overlap", type=int)
+@click.argument("mer_length", type=int)
+@click.group()
+@click.pass_context
+def main(ctx, mer_length, overlap, outfile_root, seq_fp):
+    """
+    \b
+    Purpose: Create Excel spreadsheets containing peptides generated from
+             sequence files, with an indicator as to whether they match the
+             peptide in the same position in a reference sequence.  The
+             sequence and the reference sequence can be in either two different
+             files, or one file containing both.  One spreadsheet will contain
+             the peptides generated from all of the sequences, and the other
+             will consolidate the peptides into a single column with another
+             column indicating which sequences contain them.
+
+    \b
+    Input parameters: Length of the desired peptide
+                      Length of the overlap between peptides
+                      Root name of the output file
+                      Name of the input sequence fasta file
+                      single-file OR two-files
+    \b
+    single-file parameter: Reference sequence ID
+
+    \b
+    two-files parameter: Name of the reference sequence file
+
+    \b
+    Execution (single-file):
+        python peptide_gen.py <peptide length> <overlap>
+            <output file root name> <sequence file> single-file
+            <reference sequence ID>
+    NOTE: Do not include the angle brackets with the parameters.
+
+    \b
+    Execution (two-files):
+        python peptide_gen.py <peptide length> <overlap>
+            <output file root name> <sequence file> two-files
+            <reference sequence file>
+    NOTE: Do not include the angle brackets with the parameters.
+
+    """
+    ctx.obj = {"mer_length": mer_length,
+               "overlap": overlap,
+               "outfile_root": outfile_root,
+               "seq_fp": seq_fp}
+
+
+@main.command()
+@click.pass_context
+@click.argument("refseq_id", type=str)
+def single_file(ctx, refseq_id):
+    """
+    The reference sequences is in the alignment FASTA file.
+    """
+
     comp_record_list = []
 
-    ref_record = SeqIO.read(args.ref_file, "fasta")
-    for seq_record in SeqIO.parse(args.seq_file, "fasta"):
+    for seq_record in SeqIO.parse(ctx.obj["seq_fp"], "fasta"):
+        if seq_record.id == refseq_id:
+            ref_record = seq_record
+        else:
+            comp_record_list.append(seq_record)
+
+    create_peptides(ctx.obj["mer_length"], ctx.obj["overlap"], ctx.obj["outfile_root"],
+                    ref_record, comp_record_list)
+
+
+@main.command()
+@click.pass_context
+@click.argument("ref_fp", type=click.File("r"))
+def two_files(ctx, ref_fp):
+    """
+    The reference sequences is in a separate FASTA file.
+    """
+
+    comp_record_list = []
+
+    ref_record = SeqIO.read(ref_fp, "fasta")
+    for seq_record in SeqIO.parse(ctx.obj["seq_fp"], "fasta"):
         comp_record_list.append(seq_record)
 
-    create_peptides(args.length, args.overlap, args.out_file, ref_record, comp_record_list)
+    create_peptides(ctx.obj["mer_length"], ctx.obj["overlap"], ctx.obj["outfile_root"],
+                    ref_record, comp_record_list)
 
-"""
-Function: main
-"""
-def main():
-
-    parent_parser = argparse.ArgumentParser(add_help=False)
-    parent_parser.add_argument("-length", type=int, default=None, required=True,
-                               help="Peptide length")
-    parent_parser.add_argument("-overlap", type=int, default=None, required=True,
-                               help="Peptide overlap")
-    parent_parser.add_argument("-out_file", type=argparse.FileType("wb"), required=True,
-                               help="Output file")
-    parent_parser.add_argument("-seq_file", type=argparse.FileType("r"), required=True,
-                               help="Input sequence fasta file")
-
-    parser = argparse.ArgumentParser(parents=[parent_parser], add_help=True)
-
-    subparsers = parser.add_subparsers(dest="cmd", description="subparser description")
-
-    parser_single_file = subparsers.add_parser("single_file", help="Process single file",
-                                               description="subparser description")
-    parser_single_file.add_argument("-refseq_id", type=str, required=True,
-                                    help="Reference sequence")
-    parser_single_file.set_defaults(func=process_single_file)
-
-    parser_two_files = subparsers.add_parser("two_files", help="Process two files",
-                                             description="subparser description")
-    parser_two_files.add_argument("-ref_file", type=argparse.FileType("r"), required=True,
-                                  help="Input reference sequence fasta file")
-    parser_two_files.set_defaults(func=process_two_files)
-
-    args = parser.parse_args()
-
-    args.func(args)
 
 if __name__ == "__main__":
     main()
