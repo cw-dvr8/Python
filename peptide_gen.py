@@ -252,19 +252,6 @@ def create_peptides(pep_length, pep_overlap, pep_file_root, ref_record, comp_rec
     consolidated_output_fp.close()
 
 
-def process_two_files(args):
-
-    """
-    Function: process_two_files
-
-    Purpose: Read in the fasta file containing the reference sequence and the
-             fasta file containing the target sequence, and call the
-             create_peptides function.
-
-    Inputs: args - object containing the arguments passed into the
-                   program
-    """
-
 @click.argument("seq_fp", type=click.File("r"))
 @click.argument("outfile_root", type=str)
 @click.argument("overlap", type=int)
