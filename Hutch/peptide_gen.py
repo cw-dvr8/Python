@@ -1,23 +1,33 @@
 """
 Program: peptide_gen.py
 
-Purpose: Create Excel spreadsheets containing peptides generated from sequence
-         files, with an indicator as to whether they match the peptide in the
-         same position in a reference sequence.  The sequence and the reference
-         sequence can be in either two different files, or one file containing
-         both.  One spreadsheet will contain the peptides generated from all of
-         the sequences, and the other will consolidate the peptides into a
-         single column with another column indicating which sequences contain
-         them.
+Purpose: Create an Excel spreadsheet containing peptides generated from
+         sequence files, with an indicator as to whether they match
+         the peptide in the same position in a reference sequence.
+         The sequence and the reference sequence can be in either
+         two different files, or one file containing both.
 
-Input parameters: See the docstring in the main() module.
+Input parameters: Length of peptide
+                  Peptide overlap
+                  Output file name (.xlsx)
+                  Sequence file name
+                  single_file parameters: reference sequence ID
+                  two_files parameters: reference sequence file name
 
-Outputs: Excel files
+Outputs: Excel file
 
-Execution: See the docstring in the main() module.
+Execution (single file): python peptide_gen.py -length <length> -overlap <overlap>
+                         -out_file <output file name>
+                         -seq_file <sequence file name> single_file
+                         -refseq <reference sequence ID>
 
+Execution (two files): python peptide_gen.py -length <length> -overlap <overlap>
+                       -out_file <output file name>
+                       -seq_file <sequence file name> two_files
+                       -ref_file <reference sequence file name>
 """
 
+import re
 from Bio import SeqIO
 import click
 import pandas as pd
@@ -38,7 +48,7 @@ def create_peptides(pep_length, pep_overlap, pep_file_root, ref_record, comp_rec
                          call or an iteration of a SeqIO.parse call
             comp_record_list - target sequence records
 
-    Outputs: Excel files
+    Outputs: Excel file
     """
 
     output_fp = open(f"{pep_file_root}.xlsx", "wb")
@@ -74,18 +84,31 @@ def create_peptides(pep_length, pep_overlap, pep_file_root, ref_record, comp_rec
         comp_newpeptide_string = comp_id + " New Peptide"
 
         peptide_dict_list = []
+        end_of_sequence = False
+
         start_pos = 1
-        length_remaining = len(ref_seq)
         current_pos = 0
         ref_counter = 0
         comp_counter = 0
-        end_of_sequence = False
+        # If the reference sequence starts with a gap, advance the counters until the
+        # first AA in the reference sequence is found.
+        while not ref_seq[current_pos].isalpha():
+            current_pos += 1
+            ref_counter += 1
+            comp_counter += 1
+            start_pos += 1
 
         while not end_of_sequence:
             peptide_dict = {}
             new_ref_peptide = ""
             new_comp_peptide = ""
             num_residues = 0
+
+            # If the comparison sequence does not have enough AAs left to create
+            # a full peptide, exit the loop.
+            if len(comp_seq[comp_counter:].replace("-", "")) < pep_length:
+                end_of_sequence = True
+                continue
 
             # If the length of the sequence at the current position is less than
             # the desired sequence length, start at the end of the sequence and
@@ -94,7 +117,7 @@ def create_peptides(pep_length, pep_overlap, pep_file_root, ref_record, comp_rec
             # length of the reference sequence is checked because the target
             # sequence has been aligned to the reference sequence.
 
-            if len(ref_seq[current_pos :]) < pep_length:
+            if len(ref_seq[current_pos :].replace("-", "")) < pep_length:
                 num_residues = 0
                 for c in reversed(ref_seq):
                     if c.isalpha():
@@ -105,7 +128,7 @@ def create_peptides(pep_length, pep_overlap, pep_file_root, ref_record, comp_rec
                         break
 
                 num_residues = 0
-                for c in reversed(ref_seq):
+                for c in reversed(comp_seq):
                     if c.isalpha():
                         new_comp_peptide = c + new_comp_peptide
                         num_residues += 1
@@ -151,10 +174,14 @@ def create_peptides(pep_length, pep_overlap, pep_file_root, ref_record, comp_rec
             peptide_dict["Stop Position"] = start_pos + (pep_length - 1)
             peptide_dict[ref_id] = new_ref_peptide
             peptide_dict[comp_id] = new_comp_peptide
+            peptide_dict[f"{comp_id} Differences"] = 0
             if new_comp_peptide == new_ref_peptide:
                 peptide_dict[comp_newpeptide_string] = ""
             else:
                 peptide_dict[comp_newpeptide_string] = "new peptide"
+                for seq_idx in range(len(new_ref_peptide)):
+                    if new_comp_peptide[seq_idx] != new_ref_peptide[seq_idx]:
+                        peptide_dict[f"{comp_id} Differences"] += 1
             peptide_dict_list.append(peptide_dict)
 
             if start_pos not in consolidated_peptide_dict:
@@ -251,6 +278,19 @@ def create_peptides(pep_length, pep_overlap, pep_file_root, ref_record, comp_rec
     consolidated_peptide_df.to_excel(consolidated_output_fp, sheet_name="Consolidated Peptides", index=False)
     consolidated_output_fp.close()
 
+
+def process_two_files(args):
+
+    """
+    Function: process_two_files
+
+    Purpose: Read in the fasta file containing the reference sequence and the
+             fasta file containing the target sequence, and call the
+             create_peptides function.
+
+    Inputs: args - object containing the arguments passed into the
+                   program
+    """
 
 @click.argument("seq_fp", type=click.File("r"))
 @click.argument("outfile_root", type=str)
