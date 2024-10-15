@@ -97,17 +97,12 @@ def main(json_fp):
         artifact_stats_dict[fasta_file_name]["num_seqs_orig_file"] = 0
         artifact_stats_dict[fasta_file_name]["num_seqs_mod_file"] = 0
 
-        new_line = ""
         if fasta_file_pid in artifact_dict:
             for seq_rec in SeqIO.parse(seq_fp, "fasta"):
                 artifact_stats_dict[fasta_file_name]["num_seqs_orig_file"] += 1
                 if seq_rec.id not in artifact_dict[fasta_file_pid]:
-                    outfile_fp.write(f"{new_line}>{seq_rec.id}\n")
-                    outfile_fp.write(f"{seq_rec.seq}")
+                    outfile_fp.write(f">{seq_rec.id}\n{seq_rec.seq}\n")
                     artifact_stats_dict[fasta_file_name]["num_seqs_mod_file"] += 1
-
-                    if not new_line:
-                        new_line = "\n"
                 else:
                     artifact_stats_dict[fasta_file_name]["num_artifacts"] += 1
         else:
@@ -116,19 +111,15 @@ def main(json_fp):
             # files are just copied line by line.
             for seq_rec in SeqIO.parse(seq_fp, "fasta"):
                 artifact_stats_dict[fasta_file_name]["num_seqs_orig_file"] += 1
-                outfile_fp.write(f"{new_line}>{seq_rec.id}\n")
-                outfile_fp.write(f"{seq_rec.seq}")
+                outfile_fp.write(f">{seq_rec.id}\n{seq_rec.seq}\n")
                 artifact_stats_dict[fasta_file_name]["num_seqs_mod_file"] += 1
-
-                if not new_line:
-                    new_line = "\n"
 
         seq_fp.close()
         outfile_fp.close()
 
     # Write out the stats for the modified files.
     with open(f"{json_dict['modified_sequence_file_dir']}/artifact_removal_stats.csv", "w") as stats_fp:
-        stats_fp.write("Sequence File,Number of Artifacts,Number of Original Sequences,Final Number of Sequences\n")
+        stats_fp.write("seq_file,num_artifacts,num_original_seqs,num_final_seqs\n")
         for fasta_file_name in artifact_stats_dict:
             stats_fp.write(f"{fasta_file_name},{artifact_stats_dict[fasta_file_name]['num_artifacts']},{artifact_stats_dict[fasta_file_name]['num_seqs_orig_file']},{artifact_stats_dict[fasta_file_name]['num_seqs_mod_file']}\n")
 
