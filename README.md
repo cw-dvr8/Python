@@ -171,6 +171,11 @@ Storage space for my Python code that may or may not be in production.
 #### Run a script from interactive Python (V3)
     exec(open("python script").read())
 
+#### Set the random seed to the current datetime
+    import random
+    from datetime import datetime
+    random.seed(datetime.now().timestamp())
+
 #### Synapse login
     import synapseclient
     syn = synapseclient.Synapse()
